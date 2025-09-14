@@ -1,8 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { useForm } from '@tanstack/react-form';
-import { useQueryClient } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -18,8 +16,6 @@ import {
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Trash2 } from 'lucide-react';
-import { submitApplication, type YCApplication } from '@/lib/api';
-import { toast } from 'sonner';
 
 type FileRef = { name: string; size: number };
 
@@ -189,33 +185,25 @@ function FileList({ files }: { files: FileRef[] }) {
 }
 
 export function YCQuestionnaire() {
-	const queryClient = useQueryClient();
-	const [submitting, setSubmitting] = React.useState(false);
-	const form = useForm({
-		defaultValues: empty,
-		onSubmit: async ({ value }) => {
-			setSubmitting(true);
-			try {
-				const { id } = await submitApplication(
-					value as unknown as YCApplication,
-				);
-				toast.success('Application submitted', { description: `ID: ${id}` });
-				queryClient.invalidateQueries({ queryKey: ['applications'] });
-			} catch (err) {
-				toast.error('Submit failed', {
-					description: (err as Error)?.message ?? 'Unknown error',
-				});
-			} finally {
-				setSubmitting(false);
-			}
-		},
-	});
+	const [data, setData] = React.useState<FormState>(empty);
+
+	const handleSubmit = () => {
+		// TODO: Send data to backend for processing
+		console.log('Submitting application:', data);
+		alert('Application submitted successfully!');
+	};
 
 	const addFounder = () => {
-		form.setFieldValue('team.founders', [
-			...form.state.values.team.founders,
-			{ name: '', email: '', designation: '' },
-		]);
+		setData((d) => ({
+			...d,
+			team: {
+				...d.team,
+				founders: [
+					...d.team.founders,
+					{ name: '', email: '', designation: '' },
+				],
+			},
+		}));
 	};
 
 	const updateFounder = (
@@ -223,15 +211,25 @@ export function YCQuestionnaire() {
 		field: keyof Founder,
 		value: string,
 	) => {
-		const next = form.state.values.team.founders.map((f, i) =>
-			i === index ? { ...f, [field]: value } : f,
-		);
-		form.setFieldValue('team.founders', next);
+		setData((d) => ({
+			...d,
+			team: {
+				...d.team,
+				founders: d.team.founders.map((founder, i) =>
+					i === index ? { ...founder, [field]: value } : founder,
+				),
+			},
+		}));
 	};
 
 	const removeFounder = (index: number) => {
-		const next = form.state.values.team.founders.filter((_, i) => i !== index);
-		form.setFieldValue('team.founders', next);
+		setData((d) => ({
+			...d,
+			team: {
+				...d.team,
+				founders: d.team.founders.filter((_, i) => i !== index),
+			},
+		}));
 	};
 
 	return (
@@ -257,9 +255,12 @@ export function YCQuestionnaire() {
 							<Input
 								id='name'
 								placeholder='Acme Inc.'
-								value={form.state.values.company.name}
+								value={data.company.name}
 								onChange={(e) =>
-									form.setFieldValue('company.name', e.target.value)
+									setData((d) => ({
+										...d,
+										company: { ...d.company, name: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -268,9 +269,12 @@ export function YCQuestionnaire() {
 							<Input
 								id='website'
 								placeholder='https://acme.com'
-								value={form.state.values.company.website}
+								value={data.company.website}
 								onChange={(e) =>
-									form.setFieldValue('company.website', e.target.value)
+									setData((d) => ({
+										...d,
+										company: { ...d.company, website: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -279,17 +283,25 @@ export function YCQuestionnaire() {
 							<Input
 								id='location'
 								placeholder='San Francisco, CA'
-								value={form.state.values.company.location}
+								value={data.company.location}
 								onChange={(e) =>
-									form.setFieldValue('company.location', e.target.value)
+									setData((d) => ({
+										...d,
+										company: { ...d.company, location: e.target.value },
+									}))
 								}
 							/>
 						</div>
 						<div className='grid gap-2'>
 							<Label>Stage</Label>
 							<Select
-								value={form.state.values.company.stage}
-								onValueChange={(v) => form.setFieldValue('company.stage', v)}>
+								value={data.company.stage}
+								onValueChange={(v) =>
+									setData((d) => ({
+										...d,
+										company: { ...d.company, stage: v },
+									}))
+								}>
 								<SelectTrigger>
 									<SelectValue placeholder='Choose stage' />
 								</SelectTrigger>
@@ -306,9 +318,12 @@ export function YCQuestionnaire() {
 							<Input
 								id='oneLiner'
 								placeholder='We help small businesses automate their accounting with AI'
-								value={form.state.values.company.oneLiner}
+								value={data.company.oneLiner}
 								onChange={(e) =>
-									form.setFieldValue('company.oneLiner', e.target.value)
+									setData((d) => ({
+										...d,
+										company: { ...d.company, oneLiner: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -318,9 +333,12 @@ export function YCQuestionnaire() {
 								id='what'
 								className='min-h-28'
 								placeholder='Describe your product, how it works, and the problem it solves. Be specific about your solution and target market.'
-								value={form.state.values.company.whatDoYouDo}
+								value={data.company.whatDoYouDo}
 								onChange={(e) =>
-									form.setFieldValue('company.whatDoYouDo', e.target.value)
+									setData((d) => ({
+										...d,
+										company: { ...d.company, whatDoYouDo: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -330,9 +348,12 @@ export function YCQuestionnaire() {
 								id='whyNow'
 								className='min-h-24'
 								placeholder='What has changed recently that makes this the right time for your solution? Market shifts, new technology, regulatory changes, etc.'
-								value={form.state.values.company.whyNow}
+								value={data.company.whyNow}
 								onChange={(e) =>
-									form.setFieldValue('company.whyNow', e.target.value)
+									setData((d) => ({
+										...d,
+										company: { ...d.company, whyNow: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -343,9 +364,14 @@ export function YCQuestionnaire() {
 							id='deck'
 							label='Upload pitch deck (PDF/PPT)'
 							accept='.pdf,.ppt,.pptx'
-							onPicked={(files) => form.setFieldValue('company.deck', files)}
+							onPicked={(files) =>
+								setData((d) => ({
+									...d,
+									company: { ...d.company, deck: files },
+								}))
+							}
 						/>
-						<FileList files={form.state.values.company.deck} />
+						<FileList files={data.company.deck} />
 					</div>
 				</TabsContent>
 
@@ -361,10 +387,13 @@ export function YCQuestionnaire() {
 								label='Financial model (XLSX/CSV/PDF)'
 								accept='.xlsx,.csv,.pdf'
 								onPicked={(files) =>
-									form.setFieldValue('documents.financialModel', files)
+									setData((d) => ({
+										...d,
+										documents: { ...d.documents, financialModel: files },
+									}))
 								}
 							/>
-							<FileList files={form.state.values.documents.financialModel} />
+							<FileList files={data.documents.financialModel} />
 						</div>
 						<div className='grid gap-2'>
 							<FilePicker
@@ -372,10 +401,13 @@ export function YCQuestionnaire() {
 								label='Cap table (XLSX/CSV/PDF)'
 								accept='.xlsx,.csv,.pdf'
 								onPicked={(files) =>
-									form.setFieldValue('documents.capTable', files)
+									setData((d) => ({
+										...d,
+										documents: { ...d.documents, capTable: files },
+									}))
 								}
 							/>
-							<FileList files={form.state.values.documents.capTable} />
+							<FileList files={data.documents.capTable} />
 						</div>
 						<div className='grid gap-2'>
 							<FilePicker
@@ -383,20 +415,26 @@ export function YCQuestionnaire() {
 								label='Incorporation docs (PDF)'
 								accept='.pdf'
 								onPicked={(files) =>
-									form.setFieldValue('documents.incorporation', files)
+									setData((d) => ({
+										...d,
+										documents: { ...d.documents, incorporation: files },
+									}))
 								}
 							/>
-							<FileList files={form.state.values.documents.incorporation} />
+							<FileList files={data.documents.incorporation} />
 						</div>
 						<div className='grid gap-2'>
 							<FilePicker
 								id='other'
 								label='Other supporting files'
 								onPicked={(files) =>
-									form.setFieldValue('documents.other', files)
+									setData((d) => ({
+										...d,
+										documents: { ...d.documents, other: files },
+									}))
 								}
 							/>
-							<FileList files={form.state.values.documents.other} />
+							<FileList files={data.documents.other} />
 						</div>
 					</div>
 				</TabsContent>
@@ -418,13 +456,13 @@ export function YCQuestionnaire() {
 							</Button>
 						</div>
 
-						{form.state.values.team.founders.length === 0 ? (
+						{data.team.founders.length === 0 ? (
 							<p className='text-sm text-muted-foreground'>
 								No founders added yet. Click "Add a Founder" to get started.
 							</p>
 						) : (
 							<div className='space-y-3'>
-								{form.state.values.team.founders.map((founder, index) => (
+								{data.team.founders.map((founder, index) => (
 									<div key={index} className='grid gap-3 p-4 border rounded-lg'>
 										<div className='flex items-center justify-between'>
 											<h4 className='font-medium'>Founder {index + 1}</h4>
@@ -480,9 +518,12 @@ export function YCQuestionnaire() {
 						<div className='flex items-center gap-2'>
 							<Checkbox
 								id='fulltime'
-								checked={form.state.values.team.isFullTime}
+								checked={data.team.isFullTime}
 								onCheckedChange={(v) =>
-									form.setFieldValue('team.isFullTime', Boolean(v))
+									setData((d) => ({
+										...d,
+										team: { ...d.team, isFullTime: Boolean(v) },
+									}))
 								}
 							/>
 							<Label htmlFor='fulltime'>All founders are full-time</Label>
@@ -491,9 +532,12 @@ export function YCQuestionnaire() {
 							<Label>How long have you worked together?</Label>
 							<Input
 								placeholder='2 years, 6 months, etc.'
-								value={form.state.values.team.howLongWorked}
+								value={data.team.howLongWorked}
 								onChange={(e) =>
-									form.setFieldValue('team.howLongWorked', e.target.value)
+									setData((d) => ({
+										...d,
+										team: { ...d.team, howLongWorked: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -503,9 +547,12 @@ export function YCQuestionnaire() {
 						<Textarea
 							className='min-h-20'
 							placeholder='Previous startups, relevant work experience, technical achievements, domain expertise, etc.'
-							value={form.state.values.team.relevantExperience}
+							value={data.team.relevantExperience}
 							onChange={(e) =>
-								form.setFieldValue('team.relevantExperience', e.target.value)
+								setData((d) => ({
+									...d,
+									team: { ...d.team, relevantExperience: e.target.value },
+								}))
 							}
 						/>
 					</div>
@@ -521,9 +568,12 @@ export function YCQuestionnaire() {
 							<Textarea
 								className='min-h-28'
 								placeholder='Describe your product in detail. What does it do? How does it work? What makes it unique?'
-								value={form.state.values.product.description}
+								value={data.product.description}
 								onChange={(e) =>
-									form.setFieldValue('product.description', e.target.value)
+									setData((d) => ({
+										...d,
+										product: { ...d.product, description: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -531,9 +581,12 @@ export function YCQuestionnaire() {
 							<Label>Demo URL</Label>
 							<Input
 								placeholder='https://demo.example.com'
-								value={form.state.values.product.demoUrl}
+								value={data.product.demoUrl}
 								onChange={(e) =>
-									form.setFieldValue('product.demoUrl', e.target.value)
+									setData((d) => ({
+										...d,
+										product: { ...d.product, demoUrl: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -541,9 +594,12 @@ export function YCQuestionnaire() {
 							<Label>Video URL (optional)</Label>
 							<Input
 								placeholder='https://youtube.com/watch?v=... or https://vimeo.com/...'
-								value={form.state.values.product.videoUrl}
+								value={data.product.videoUrl}
 								onChange={(e) =>
-									form.setFieldValue('product.videoUrl', e.target.value)
+									setData((d) => ({
+										...d,
+										product: { ...d.product, videoUrl: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -554,19 +610,25 @@ export function YCQuestionnaire() {
 								accept='.mp4,.mov,.avi,.mkv'
 								multiple={false}
 								onPicked={(files) =>
-									form.setFieldValue('product.videoFile', files)
+									setData((d) => ({
+										...d,
+										product: { ...d.product, videoFile: files },
+									}))
 								}
 							/>
-							<FileList files={form.state.values.product.videoFile} />
+							<FileList files={data.product.videoFile} />
 						</div>
 						<div className='grid gap-2'>
 							<Label>Defensibility / moat</Label>
 							<Textarea
 								className='min-h-24'
 								placeholder='Why is this hard to copy? Data advantages, network effects, proprietary technology, regulatory barriers, etc.'
-								value={form.state.values.product.defensibility}
+								value={data.product.defensibility}
 								onChange={(e) =>
-									form.setFieldValue('product.defensibility', e.target.value)
+									setData((d) => ({
+										...d,
+										product: { ...d.product, defensibility: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -575,10 +637,13 @@ export function YCQuestionnaire() {
 								id='supporting'
 								label='Upload supporting documents regarding the product'
 								onPicked={(files) =>
-									form.setFieldValue('product.supportingDocs', files)
+									setData((d) => ({
+										...d,
+										product: { ...d.product, supportingDocs: files },
+									}))
 								}
 							/>
-							<FileList files={form.state.values.product.supportingDocs} />
+							<FileList files={data.product.supportingDocs} />
 						</div>
 					</div>
 				</TabsContent>
@@ -593,9 +658,12 @@ export function YCQuestionnaire() {
 							<Textarea
 								className='min-h-24'
 								placeholder='Be specific about your target customer. Demographics, company size, role, pain points, etc.'
-								value={form.state.values.market.customer}
+								value={data.market.customer}
 								onChange={(e) =>
-									form.setFieldValue('market.customer', e.target.value)
+									setData((d) => ({
+										...d,
+										market: { ...d.market, customer: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -604,9 +672,12 @@ export function YCQuestionnaire() {
 							<Textarea
 								className='min-h-24'
 								placeholder='List direct and indirect competitors. Include both established companies and other startups.'
-								value={form.state.values.market.competitors}
+								value={data.market.competitors}
 								onChange={(e) =>
-									form.setFieldValue('market.competitors', e.target.value)
+									setData((d) => ({
+										...d,
+										market: { ...d.market, competitors: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -615,9 +686,12 @@ export function YCQuestionnaire() {
 							<Textarea
 								className='min-h-24'
 								placeholder="What's your unique value proposition? How do you differentiate from competitors?"
-								value={form.state.values.market.differentiation}
+								value={data.market.differentiation}
 								onChange={(e) =>
-									form.setFieldValue('market.differentiation', e.target.value)
+									setData((d) => ({
+										...d,
+										market: { ...d.market, differentiation: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -626,9 +700,12 @@ export function YCQuestionnaire() {
 							<Textarea
 								className='min-h-24'
 								placeholder='How will you acquire customers? Sales strategy, marketing channels, partnerships, etc.'
-								value={form.state.values.market.gtm}
+								value={data.market.gtm}
 								onChange={(e) =>
-									form.setFieldValue('market.gtm', e.target.value)
+									setData((d) => ({
+										...d,
+										market: { ...d.market, gtm: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -637,9 +714,12 @@ export function YCQuestionnaire() {
 								<Label>TAM (USD)</Label>
 								<Input
 									placeholder='e.g. $20B'
-									value={form.state.values.market.tam}
+									value={data.market.tam}
 									onChange={(e) =>
-										form.setFieldValue('market.tam', e.target.value)
+										setData((d) => ({
+											...d,
+											market: { ...d.market, tam: e.target.value },
+										}))
 									}
 								/>
 							</div>
@@ -647,9 +727,12 @@ export function YCQuestionnaire() {
 								<Label>SAM (USD)</Label>
 								<Input
 									placeholder='e.g. $4B'
-									value={form.state.values.market.sam}
+									value={data.market.sam}
 									onChange={(e) =>
-										form.setFieldValue('market.sam', e.target.value)
+										setData((d) => ({
+											...d,
+											market: { ...d.market, sam: e.target.value },
+										}))
 									}
 								/>
 							</div>
@@ -657,9 +740,12 @@ export function YCQuestionnaire() {
 								<Label>SOM (USD)</Label>
 								<Input
 									placeholder='e.g. $400M'
-									value={form.state.values.market.som}
+									value={data.market.som}
 									onChange={(e) =>
-										form.setFieldValue('market.som', e.target.value)
+										setData((d) => ({
+											...d,
+											market: { ...d.market, som: e.target.value },
+										}))
 									}
 								/>
 							</div>
@@ -675,9 +761,12 @@ export function YCQuestionnaire() {
 						<div className='grid gap-2'>
 							<Label>Have you launched?</Label>
 							<Select
-								value={form.state.values.traction.isLaunched}
+								value={data.traction.isLaunched}
 								onValueChange={(v) =>
-									form.setFieldValue('traction.isLaunched', v)
+									setData((d) => ({
+										...d,
+										traction: { ...d.traction, isLaunched: v },
+									}))
 								}>
 								<SelectTrigger>
 									<SelectValue placeholder='Select status' />
@@ -693,9 +782,12 @@ export function YCQuestionnaire() {
 							<Label>Launch date (if launched)</Label>
 							<Input
 								placeholder='January 2024'
-								value={form.state.values.traction.launchDate}
+								value={data.traction.launchDate}
 								onChange={(e) =>
-									form.setFieldValue('traction.launchDate', e.target.value)
+									setData((d) => ({
+										...d,
+										traction: { ...d.traction, launchDate: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -703,9 +795,12 @@ export function YCQuestionnaire() {
 							<Label>MRR (USD)</Label>
 							<Input
 								placeholder='e.g. 12000'
-								value={form.state.values.traction.mrr}
+								value={data.traction.mrr}
 								onChange={(e) =>
-									form.setFieldValue('traction.mrr', e.target.value)
+									setData((d) => ({
+										...d,
+										traction: { ...d.traction, mrr: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -713,9 +808,12 @@ export function YCQuestionnaire() {
 							<Label>Growth (% MoM)</Label>
 							<Input
 								placeholder='e.g. 18'
-								value={form.state.values.traction.growth}
+								value={data.traction.growth}
 								onChange={(e) =>
-									form.setFieldValue('traction.growth', e.target.value)
+									setData((d) => ({
+										...d,
+										traction: { ...d.traction, growth: e.target.value },
+									}))
 								}
 							/>
 						</div>
@@ -724,12 +822,15 @@ export function YCQuestionnaire() {
 							<Input
 								type='number'
 								placeholder='e.g. 1500'
-								value={form.state.values.traction.activeUsersCount}
+								value={data.traction.activeUsersCount}
 								onChange={(e) =>
-									form.setFieldValue(
-										'traction.activeUsersCount',
-										e.target.value,
-									)
+									setData((d) => ({
+										...d,
+										traction: {
+											...d.traction,
+											activeUsersCount: e.target.value,
+										},
+									}))
 								}
 							/>
 						</div>
@@ -742,10 +843,13 @@ export function YCQuestionnaire() {
 							label='Upload metrics CSV (optional)'
 							accept='.csv'
 							onPicked={(files) =>
-								form.setFieldValue('traction.metricsCsv', files)
+								setData((d) => ({
+									...d,
+									traction: { ...d.traction, metricsCsv: files },
+								}))
 							}
 						/>
-						<FileList files={form.state.values.traction.metricsCsv} />
+						<FileList files={data.traction.metricsCsv} />
 					</div>
 
 					<div className='grid gap-2'>
@@ -753,9 +857,12 @@ export function YCQuestionnaire() {
 						<Textarea
 							className='min-h-20'
 							placeholder='List any pilot programs, letters of intent, or committed customers you have.'
-							value={form.state.values.traction.pilots}
+							value={data.traction.pilots}
 							onChange={(e) =>
-								form.setFieldValue('traction.pilots', e.target.value)
+								setData((d) => ({
+									...d,
+									traction: { ...d.traction, pilots: e.target.value },
+								}))
 							}
 						/>
 					</div>
@@ -764,9 +871,12 @@ export function YCQuestionnaire() {
 						<Textarea
 							className='min-h-20'
 							placeholder='What metrics do you track regularly? Revenue, user engagement, retention, conversion rates, etc.'
-							value={form.state.values.traction.kpis}
+							value={data.traction.kpis}
 							onChange={(e) =>
-								form.setFieldValue('traction.kpis', e.target.value)
+								setData((d) => ({
+									...d,
+									traction: { ...d.traction, kpis: e.target.value },
+								}))
 							}
 						/>
 					</div>
@@ -774,9 +884,7 @@ export function YCQuestionnaire() {
 			</Tabs>
 
 			<div className='flex items-center gap-3 pt-2'>
-				<Button onClick={() => form.handleSubmit()} disabled={submitting}>
-					{submitting ? 'Submitting...' : 'Submit Application'}
-				</Button>
+				<Button onClick={handleSubmit}>Submit Application</Button>
 			</div>
 		</div>
 	);
