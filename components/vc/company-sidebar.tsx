@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import {
 	Sidebar,
 	SidebarContent,
@@ -12,15 +13,13 @@ import {
 	SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { Input } from '@/components/ui/input';
-import { Search, Building2, DollarSign, Calendar, X } from 'lucide-react';
+import { Search, Building2, DollarSign, Calendar, X, Home } from 'lucide-react';
 import { mockCompanies } from '@/lib/mock';
 import Link from 'next/link';
 
-interface CompanySidebarProps {
-	currentCompanyId: string;
-}
-
-export function CompanySidebar({ currentCompanyId }: CompanySidebarProps) {
+export function CompanySidebar() {
+	const params = useParams() as { id?: string } | undefined;
+	const currentCompanyId = params?.id ?? '';
 	const [searchQuery, setSearchQuery] = useState('');
 
 	const filteredCompanies = useMemo(() => {
@@ -44,7 +43,15 @@ export function CompanySidebar({ currentCompanyId }: CompanySidebarProps) {
 	return (
 		<Sidebar className='w-96'>
 			<SidebarHeader className='border-b border-sidebar-border p-6'>
-				<h2 className='text-xl font-semibold'>Portfolio Companies</h2>
+				<div className='flex items-center justify-between'>
+					<h2 className='text-xl font-semibold'>Portfolio Companies</h2>
+					<Link
+						href={'/vc'}
+						aria-label='Home'
+						className='rounded-md p-2 hover:bg-sidebar-accent text-sidebar-foreground'>
+						<Home className='h-5 w-5' />
+					</Link>
+				</div>
 				<p className='text-sm text-muted-foreground mt-1'>
 					{mockCompanies.length} companies in pipeline
 				</p>
