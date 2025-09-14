@@ -36,7 +36,7 @@ export function TractionTab({ form }: { form: TractionTabForm }) {
 					name='traction.isLaunched'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Have you launched?</FormLabel>
+							<FormLabel>Have you launched? *</FormLabel>
 							<Select onValueChange={field.onChange} defaultValue={field.value}>
 								<FormControl>
 									<SelectTrigger>

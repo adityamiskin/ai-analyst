@@ -29,7 +29,7 @@ export function ProductTab({ form }: { form: ProductTabForm }) {
 					name='product.description'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Description</FormLabel>
+							<FormLabel>Description *</FormLabel>
 							<FormControl>
 								<Textarea
 									className='min-h-28'
@@ -96,7 +96,7 @@ export function ProductTab({ form }: { form: ProductTabForm }) {
 					name='product.defensibility'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Defensibility / moat</FormLabel>
+							<FormLabel>Defensibility / moat *</FormLabel>
 							<FormControl>
 								<Textarea
 									className='min-h-24'

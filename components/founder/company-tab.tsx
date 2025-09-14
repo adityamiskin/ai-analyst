@@ -37,7 +37,7 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 					name='company.name'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Company name</FormLabel>
+							<FormLabel>Company name *</FormLabel>
 							<FormControl>
 								<Input placeholder='Acme Inc.' {...field} />
 							</FormControl>
@@ -50,7 +50,7 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 					name='company.website'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Website</FormLabel>
+							<FormLabel>Website *</FormLabel>
 							<FormControl>
 								<Input placeholder='https://acme.com' {...field} />
 							</FormControl>
@@ -63,7 +63,7 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 					name='company.location'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>HQ Location</FormLabel>
+							<FormLabel>HQ Location *</FormLabel>
 							<FormControl>
 								<Input placeholder='San Francisco, CA' {...field} />
 							</FormControl>
@@ -76,7 +76,7 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 					name='company.stage'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Stage</FormLabel>
+							<FormLabel>Stage *</FormLabel>
 							<Select onValueChange={field.onChange} defaultValue={field.value}>
 								<FormControl>
 									<SelectTrigger>
@@ -99,7 +99,7 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 					name='company.oneLiner'
 					render={({ field }) => (
 						<FormItem className='md:col-span-2'>
-							<FormLabel>One-liner</FormLabel>
+							<FormLabel>One-liner *</FormLabel>
 							<FormControl>
 								<Input
 									placeholder='We help small businesses automate their accounting with AI'
@@ -115,7 +115,7 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 					name='company.whatDoYouDo'
 					render={({ field }) => (
 						<FormItem className='md:col-span-2'>
-							<FormLabel>What do you do?</FormLabel>
+							<FormLabel>What do you do? *</FormLabel>
 							<FormControl>
 								<Textarea
 									className='min-h-28'
@@ -132,7 +132,7 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 					name='company.whyNow'
 					render={({ field }) => (
 						<FormItem className='md:col-span-2'>
-							<FormLabel>Why now?</FormLabel>
+							<FormLabel>Why now? *</FormLabel>
 							<FormControl>
 								<Textarea
 									className='min-h-24'

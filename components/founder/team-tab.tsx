@@ -41,7 +41,7 @@ export function TeamTab({
 
 			<div className='space-y-4'>
 				<div className='flex items-center justify-between'>
-					<Label className='text-base font-medium'>Founders</Label>
+					<Label className='text-base font-medium'>Founders *</Label>
 					<Button
 						type='button'
 						variant='outline'
@@ -76,7 +76,7 @@ export function TeamTab({
 										name={`team.founders.${index}.name`}
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Name</FormLabel>
+												<FormLabel>Name *</FormLabel>
 												<FormControl>
 													<Input placeholder='Jane Doe' {...field} />
 												</FormControl>
@@ -89,7 +89,7 @@ export function TeamTab({
 										name={`team.founders.${index}.email`}
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Email</FormLabel>
+												<FormLabel>Email *</FormLabel>
 												<FormControl>
 													<Input
 														type='email'
@@ -106,7 +106,7 @@ export function TeamTab({
 										name={`team.founders.${index}.designation`}
 										render={({ field }) => (
 											<FormItem>
-												<FormLabel>Designation</FormLabel>
+												<FormLabel>Designation *</FormLabel>
 												<FormControl>
 													<Input placeholder='CEO' {...field} />
 												</FormControl>
@@ -145,7 +145,7 @@ export function TeamTab({
 					name='team.howLongWorked'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>How long have you worked together?</FormLabel>
+							<FormLabel>How long have you worked together? *</FormLabel>
 							<FormControl>
 								<Input placeholder='2 years, 6 months, etc.' {...field} />
 							</FormControl>
@@ -160,7 +160,7 @@ export function TeamTab({
 				render={({ field }) => (
 					<FormItem>
 						<FormLabel>
-							What relevant experience or achievements do you have?
+							What relevant experience or achievements do you have? *
 						</FormLabel>
 						<FormControl>
 							<Textarea

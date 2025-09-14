@@ -26,7 +26,7 @@ export function MarketTab({ form }: { form: MarketTabForm }) {
 					name='market.customer'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Who is your customer?</FormLabel>
+							<FormLabel>Who is your customer? *</FormLabel>
 							<FormControl>
 								<Textarea
 									className='min-h-24'
@@ -43,7 +43,7 @@ export function MarketTab({ form }: { form: MarketTabForm }) {
 					name='market.competitors'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Competitors</FormLabel>
+							<FormLabel>Competitors *</FormLabel>
 							<FormControl>
 								<Textarea
 									className='min-h-24'
@@ -60,7 +60,7 @@ export function MarketTab({ form }: { form: MarketTabForm }) {
 					name='market.differentiation'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>How are you different?</FormLabel>
+							<FormLabel>How are you different? *</FormLabel>
 							<FormControl>
 								<Textarea
 									className='min-h-24'
@@ -77,7 +77,7 @@ export function MarketTab({ form }: { form: MarketTabForm }) {
 					name='market.gtm'
 					render={({ field }) => (
 						<FormItem>
-							<FormLabel>Go-to-market</FormLabel>
+							<FormLabel>Go-to-market *</FormLabel>
 							<FormControl>
 								<Textarea
 									className='min-h-24'

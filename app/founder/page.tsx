@@ -4,7 +4,6 @@ import * as React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { CompanyTab } from '@/components/founder/company-tab';
@@ -13,6 +12,8 @@ import { TeamTab } from '@/components/founder/team-tab';
 import { ProductTab } from '@/components/founder/product-tab';
 import { MarketTab } from '@/components/founder/market-tab';
 import { TractionTab } from '@/components/founder/traction-tab';
+import { useMutation } from 'convex/react';
+import { api } from '@/convex/_generated/api';
 import {
 	Card,
 	CardContent,
@@ -20,6 +21,8 @@ import {
 	CardHeader,
 	CardTitle,
 } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
 type Founder = {
 	name: string;
@@ -105,7 +108,13 @@ const defaultValues: FormData = {
 		deck: [],
 	},
 	team: {
-		founders: [],
+		founders: [
+			{
+				name: '',
+				email: '',
+				designation: '',
+			},
+		],
 		isFullTime: true,
 		howLongWorked: '',
 		relevantExperience: '',
@@ -151,10 +160,33 @@ export default function YCQuestionnaire() {
 		defaultValues,
 	});
 
-	const onSubmit = (data: FormData) => {
-		// TODO: Send data to backend for processing
-		console.log('Submitting application:', data);
-		alert('Application submitted successfully!');
+	const createApplication = useMutation(api.founders.createApplication);
+
+	const onSubmit = async (data: FormData) => {
+		try {
+			if (!data.team.founders.length) {
+				toast.error('At least one founder is required');
+				return;
+			}
+
+			const primaryEmail = data.team.founders[0]?.email;
+			if (!primaryEmail) {
+				toast.error('Primary founder email is required');
+				return;
+			}
+
+			const result = await createApplication({ ...data, primaryEmail });
+
+			toast.success('Application submitted successfully!');
+			form.reset(defaultValues);
+		} catch (error) {
+			console.error('❌ Submission error:', error);
+			toast.error(
+				`Failed to submit: ${
+					error instanceof Error ? error.message : 'Unknown error'
+				}`,
+			);
+		}
 	};
 
 	const addFounder = () => {
@@ -185,6 +217,63 @@ export default function YCQuestionnaire() {
 		);
 	};
 
+	// Multistep state and helpers
+	const [currentStep, setCurrentStep] = React.useState(0);
+	const steps = [
+		{
+			key: 'company',
+			label: 'Company',
+			render: () => <CompanyTab form={form} />,
+		},
+		{
+			key: 'documents',
+			label: 'Documents',
+			render: () => <DocumentsTab form={form} />,
+		},
+		{
+			key: 'team',
+			label: 'Team',
+			render: () => (
+				<TeamTab
+					form={form}
+					addFounder={addFounder}
+					updateFounder={updateFounder}
+					removeFounder={removeFounder}
+				/>
+			),
+		},
+		{
+			key: 'product',
+			label: 'Product',
+			render: () => <ProductTab form={form} />,
+		},
+		{ key: 'market', label: 'Market', render: () => <MarketTab form={form} /> },
+		{
+			key: 'traction',
+			label: 'Traction',
+			render: () => <TractionTab form={form} />,
+		},
+	] as const;
+
+	const totalSteps = steps.length;
+	const progressPercent = ((currentStep + 1) / totalSteps) * 100;
+
+	const handleNext = async () => {
+		const currentKey = steps[currentStep].key as keyof FormData;
+		const isValid = await form.trigger(currentKey as any, {
+			shouldFocus: true,
+		});
+		if (!isValid) {
+			toast.error('Please fill all the important fields before proceeding');
+			return;
+		}
+		setCurrentStep((s) => Math.min(s + 1, totalSteps - 1));
+	};
+
+	const handleBack = () => {
+		setCurrentStep((s) => Math.max(s - 1, 0));
+	};
+
 	return (
 		<main className='container mx-auto max-w-5xl px-4 py-8'>
 			<header className='mb-6'>
@@ -207,48 +296,48 @@ export default function YCQuestionnaire() {
 						<form
 							onSubmit={form.handleSubmit(onSubmit)}
 							className='space-y-6 h-full'>
-							<Tabs defaultValue='company' className='space-y-6'>
-								<TabsList className='flex flex-wrap justify-start'>
-									<TabsTrigger value='company'>Company</TabsTrigger>
-									<TabsTrigger value='documents'>Documents</TabsTrigger>
-									<TabsTrigger value='team'>Team</TabsTrigger>
-									<TabsTrigger value='product'>Product</TabsTrigger>
-									<TabsTrigger value='market'>Market</TabsTrigger>
-									<TabsTrigger value='traction'>Traction</TabsTrigger>
-								</TabsList>
+							<div className='space-y-6'>
+								<div className='flex items-center gap-4'>
+									<div className='text-sm text-muted-foreground'>
+										Step {currentStep + 1} of {totalSteps}
+									</div>
+									<div className='flex-1'>
+										<Progress value={progressPercent} />
+									</div>
+								</div>
 
-								<TabsContent value='company' className='space-y-4'>
-									<CompanyTab form={form} />
-								</TabsContent>
+								<div className='flex flex-wrap gap-2'>
+									{steps.map((s, idx) => (
+										<button
+											key={s.key}
+											type='button'
+											onClick={() => setCurrentStep(idx)}
+											className={`px-3 py-1.5 rounded-md border text-sm ${
+												idx === currentStep
+													? 'bg-primary text-primary-foreground'
+													: 'bg-background'
+											}`}>
+											{idx + 1}. {s.label}
+										</button>
+									))}
+								</div>
 
-								<TabsContent value='documents' className='space-y-4'>
-									<DocumentsTab form={form} />
-								</TabsContent>
-
-								<TabsContent value='team' className='space-y-4'>
-									<TeamTab
-										form={form}
-										addFounder={addFounder}
-										updateFounder={updateFounder}
-										removeFounder={removeFounder}
-									/>
-								</TabsContent>
-
-								<TabsContent value='product' className='space-y-4'>
-									<ProductTab form={form} />
-								</TabsContent>
-
-								<TabsContent value='market' className='space-y-4'>
-									<MarketTab form={form} />
-								</TabsContent>
-
-								<TabsContent value='traction' className='space-y-4'>
-									<TractionTab form={form} />
-								</TabsContent>
-							</Tabs>
+								<div className='space-y-4'>{steps[currentStep].render()}</div>
+							</div>
 
 							<div className='flex items-center gap-3 pt-2'>
-								<Button type='submit'>Submit Application</Button>
+								{currentStep > 0 && (
+									<Button type='button' variant='outline' onClick={handleBack}>
+										Back
+									</Button>
+								)}
+								{currentStep < totalSteps - 1 ? (
+									<Button type='button' onClick={handleNext}>
+										Next
+									</Button>
+								) : (
+									<Button type='submit'>Submit Application</Button>
+								)}
 							</div>
 						</form>
 					</Form>
