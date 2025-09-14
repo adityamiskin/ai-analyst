@@ -3,8 +3,8 @@
 import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { mockSnapshot } from "@/lib/mock"
-import ProvenanceBadge from "../shared/provenance-badge"
-import TrustChecks from "../shared/trust-checks"
+import ProvenanceBadge from "./provenance-badge"
+import TrustChecks from "./trust-checks"
 
 export default function Snapshot() {
   const s = mockSnapshot
