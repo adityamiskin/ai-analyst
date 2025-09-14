@@ -7,12 +7,12 @@ import * as z from 'zod';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { CompanyTab } from './company-tab';
-import { DocumentsTab } from './documents-tab';
-import { TeamTab } from './team-tab';
-import { ProductTab } from './product-tab';
-import { MarketTab } from './market-tab';
-import { TractionTab } from './traction-tab';
+import { CompanyTab } from './tabs/company-tab';
+import { DocumentsTab } from './tabs/documents-tab';
+import { TeamTab } from './tabs/team-tab';
+import { ProductTab } from './tabs/product-tab';
+import { MarketTab } from './tabs/market-tab';
+import { TractionTab } from './tabs/traction-tab';
 
 type Founder = {
 	name: string;

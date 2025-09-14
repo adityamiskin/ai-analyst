@@ -11,9 +11,9 @@ import {
 	FormMessage,
 } from '@/components/ui/form';
 import type { UseFormReturn } from 'react-hook-form';
-import type { FileRef } from './file-picker';
-import { FilePicker } from './file-picker';
-import { FileList } from './file-list';
+import type { FileRef } from './tabs/file-picker';
+import { FilePicker } from './tabs/file-picker';
+import { FileList } from './tabs/file-list';
 
 export type ProductTabForm = UseFormReturn<any>;
 
