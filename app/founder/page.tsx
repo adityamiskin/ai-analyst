@@ -7,12 +7,19 @@ import * as z from 'zod';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { CompanyTab } from './tabs/company-tab';
-import { DocumentsTab } from './tabs/documents-tab';
-import { TeamTab } from './tabs/team-tab';
-import { ProductTab } from './tabs/product-tab';
-import { MarketTab } from './tabs/market-tab';
-import { TractionTab } from './tabs/traction-tab';
+import { CompanyTab } from '@/components/founder/company-tab';
+import { DocumentsTab } from '@/components/founder/documents-tab';
+import { TeamTab } from '@/components/founder/team-tab';
+import { ProductTab } from '@/components/founder/product-tab';
+import { MarketTab } from '@/components/founder/market-tab';
+import { TractionTab } from '@/components/founder/traction-tab';
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardHeader,
+	CardTitle,
+} from '@/components/ui/card';
 
 type Founder = {
 	name: string;
@@ -138,7 +145,7 @@ const defaultValues: FormData = {
 	},
 };
 
-export function YCQuestionnaire() {
+export default function YCQuestionnaire() {
 	const form = useForm<FormData>({
 		resolver: zodResolver(formSchema),
 		defaultValues,
@@ -179,52 +186,74 @@ export function YCQuestionnaire() {
 	};
 
 	return (
-		<Form {...form}>
-			<form onSubmit={form.handleSubmit(onSubmit)} className='space-y-6'>
-				<Tabs defaultValue='company' className='space-y-6'>
-					<TabsList className='flex flex-wrap justify-start'>
-						<TabsTrigger value='company'>Company</TabsTrigger>
-						<TabsTrigger value='documents'>Documents</TabsTrigger>
-						<TabsTrigger value='team'>Team</TabsTrigger>
-						<TabsTrigger value='product'>Product</TabsTrigger>
-						<TabsTrigger value='market'>Market</TabsTrigger>
-						<TabsTrigger value='traction'>Traction</TabsTrigger>
-					</TabsList>
+		<main className='container mx-auto max-w-5xl px-4 py-8'>
+			<header className='mb-6'>
+				<h1 className='text-3xl font-semibold text-pretty'>
+					Founder Questionnaire
+				</h1>
+				<p className='text-muted-foreground mt-1'>
+					YC-style application to capture everything in one place. Upload your
+					deck and key docs inline as you answer.
+				</p>
+			</header>
 
-					<TabsContent value='company' className='space-y-4'>
-						<CompanyTab form={form} />
-					</TabsContent>
+			<Card>
+				<CardHeader>
+					<CardTitle className='text-xl'>Tell us about your company</CardTitle>
+					<CardDescription>Keep answers clear and concise.</CardDescription>
+				</CardHeader>
+				<CardContent>
+					<Form {...form}>
+						<form
+							onSubmit={form.handleSubmit(onSubmit)}
+							className='space-y-6 h-full'>
+							<Tabs defaultValue='company' className='space-y-6'>
+								<TabsList className='flex flex-wrap justify-start'>
+									<TabsTrigger value='company'>Company</TabsTrigger>
+									<TabsTrigger value='documents'>Documents</TabsTrigger>
+									<TabsTrigger value='team'>Team</TabsTrigger>
+									<TabsTrigger value='product'>Product</TabsTrigger>
+									<TabsTrigger value='market'>Market</TabsTrigger>
+									<TabsTrigger value='traction'>Traction</TabsTrigger>
+								</TabsList>
 
-					<TabsContent value='documents' className='space-y-4'>
-						<DocumentsTab form={form} />
-					</TabsContent>
+								<TabsContent value='company' className='space-y-4'>
+									<CompanyTab form={form} />
+								</TabsContent>
 
-					<TabsContent value='team' className='space-y-4'>
-						<TeamTab
-							form={form}
-							addFounder={addFounder}
-							updateFounder={updateFounder}
-							removeFounder={removeFounder}
-						/>
-					</TabsContent>
+								<TabsContent value='documents' className='space-y-4'>
+									<DocumentsTab form={form} />
+								</TabsContent>
 
-					<TabsContent value='product' className='space-y-4'>
-						<ProductTab form={form} />
-					</TabsContent>
+								<TabsContent value='team' className='space-y-4'>
+									<TeamTab
+										form={form}
+										addFounder={addFounder}
+										updateFounder={updateFounder}
+										removeFounder={removeFounder}
+									/>
+								</TabsContent>
 
-					<TabsContent value='market' className='space-y-4'>
-						<MarketTab form={form} />
-					</TabsContent>
+								<TabsContent value='product' className='space-y-4'>
+									<ProductTab form={form} />
+								</TabsContent>
 
-					<TabsContent value='traction' className='space-y-4'>
-						<TractionTab form={form} />
-					</TabsContent>
-				</Tabs>
+								<TabsContent value='market' className='space-y-4'>
+									<MarketTab form={form} />
+								</TabsContent>
 
-				<div className='flex items-center gap-3 pt-2'>
-					<Button type='submit'>Submit Application</Button>
-				</div>
-			</form>
-		</Form>
+								<TabsContent value='traction' className='space-y-4'>
+									<TractionTab form={form} />
+								</TabsContent>
+							</Tabs>
+
+							<div className='flex items-center gap-3 pt-2'>
+								<Button type='submit'>Submit Application</Button>
+							</div>
+						</form>
+					</Form>
+				</CardContent>
+			</Card>
+		</main>
 	);
 }
