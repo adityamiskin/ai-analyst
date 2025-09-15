@@ -134,3 +134,12 @@ export const deleteApplication = mutation({
 		return true;
 	},
 });
+
+export const listAllApplications = query({
+	args: {},
+	handler: async (ctx) => {
+		const applications = await ctx.db.query('founderApplications').collect();
+		applications.sort((a, b) => b.createdAt - a.createdAt);
+		return applications;
+	},
+});
