@@ -8,7 +8,7 @@ import {
 import { v } from 'convex/values';
 import { z } from 'zod';
 import { generateObject } from 'ai';
-import { companyAnalysisAgent, companyRag } from './ai';
+import { createCompanyAnalysisAgent, companyRag } from './ai';
 import { api, internal } from './_generated/api';
 import { Doc } from './_generated/dataModel';
 
@@ -340,6 +340,7 @@ export const runAnalysis = internalAction({
 			});
 
 			// Create a thread for this analysis
+			const companyAnalysisAgent = createCompanyAnalysisAgent(companyId);
 			const { thread } = await companyAnalysisAgent.createThread(ctx, {
 				title: `Company Analysis ${companyId}`,
 			});

@@ -261,13 +261,6 @@ export default function AnalysisContainer() {
 										</Badge>
 									)}
 								</div>
-								{isSingleAgentRunning && singleAgentJobStatus && (
-									<div className='w-full max-w-xs'>
-										<p className='text-xs text-muted-foreground mt-1'>
-											{singleAgentJobStatus.message}
-										</p>
-									</div>
-								)}
 							</div>
 						</TabsTrigger>
 						<TabsTrigger

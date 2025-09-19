@@ -10,12 +10,12 @@ import { z } from 'zod';
 import { generateObject, Output } from 'ai';
 import { google } from '@ai-sdk/google';
 import {
-	financeAgent,
-	evaluationAgent,
-	competitorAgent,
-	marketAgent,
-	technicalAgent,
-	orchestrationAgent,
+	createFinanceAgent,
+	createEvaluationAgent,
+	createCompetitorAgent,
+	createMarketAgent,
+	createTechnicalAgent,
+	createOrchestrationAgent,
 } from './ai';
 import { api, internal } from './_generated/api';
 
@@ -379,6 +379,7 @@ async function runFinanceAnalysis(
 	baselineContext: string,
 	jobId: string,
 ) {
+	const financeAgent = createFinanceAgent(companyId);
 	const { thread } = await financeAgent.createThread(ctx, {
 		title: `Finance Analysis ${companyId}`,
 	});
@@ -463,6 +464,7 @@ async function runEvaluationAnalysis(
 	baselineContext: string,
 	jobId: string,
 ) {
+	const evaluationAgent = createEvaluationAgent(companyId);
 	const { thread } = await evaluationAgent.createThread(ctx, {
 		title: `Evaluation Analysis ${companyId}`,
 	});
@@ -547,6 +549,7 @@ async function runCompetitorAnalysis(
 	baselineContext: string,
 	jobId: string,
 ) {
+	const competitorAgent = createCompetitorAgent(companyId);
 	const { thread } = await competitorAgent.createThread(ctx, {
 		title: `Competitor Analysis ${companyId}`,
 	});
@@ -633,6 +636,7 @@ async function runMarketAnalysis(
 	baselineContext: string,
 	jobId: string,
 ) {
+	const marketAgent = createMarketAgent(companyId);
 	const { thread } = await marketAgent.createThread(ctx, {
 		title: `Market Analysis ${companyId}`,
 	});
@@ -719,6 +723,7 @@ async function runTechnicalAnalysis(
 	baselineContext: string,
 	jobId: string,
 ) {
+	const technicalAgent = createTechnicalAgent(companyId);
 	const { thread } = await technicalAgent.createThread(ctx, {
 		title: `Technical Analysis ${companyId}`,
 	});
@@ -835,12 +840,6 @@ export const updateJobStatus = internalMutation({
 export const runMultiAgentAnalysis = internalAction({
 	args: { companyId: v.id('founderApplications'), jobId: v.id('analysisJobs') },
 	handler: async (ctx, { companyId, jobId }) => {
-		// Set up timeout to prevent function from running too long
-		const timeoutMs = 8 * 60 * 1000; // 8 minutes (less than 10 minute Convex limit)
-		const timeoutId = setTimeout(() => {
-			throw new Error('Analysis timeout - function exceeded 8 minutes');
-		}, timeoutMs);
-
 		try {
 			// Update job status to running
 			await ctx.runMutation(internal.multi_agent_analysis.updateJobStatus, {
@@ -912,6 +911,7 @@ export const runMultiAgentAnalysis = internalAction({
 			});
 
 			// Run orchestration agent to synthesize results
+			const orchestrationAgent = createOrchestrationAgent(companyId);
 			const { thread } = await orchestrationAgent.createThread(ctx, {
 				title: `Orchestration Analysis ${companyId}`,
 			});
@@ -1028,9 +1028,6 @@ Technical: ${technicalAnalysis.summary}`;
 				error: error instanceof Error ? error.message : 'Unknown error',
 			});
 			throw error;
-		} finally {
-			// Clear the timeout
-			clearTimeout(timeoutId);
 		}
 	},
 });
