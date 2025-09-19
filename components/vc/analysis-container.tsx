@@ -10,6 +10,7 @@ import FrameworksScorecard from '@/components/vc/frameworks-scorecard';
 import Risks from '@/components/vc/risks';
 import { SourcesEvidence } from '@/components/vc/vc-sources-evidence';
 import { ReportPreview } from '@/components/vc/report-preview';
+import AgentActivityDashboard from '@/components/vc/agent-activity-dashboard';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -219,7 +220,7 @@ export default function AnalysisContainer() {
 
 			{companyId && (
 				<Tabs defaultValue='multi-agent' className='w-full'>
-					<TabsList className='grid w-full grid-cols-2'>
+					<TabsList className='grid w-full grid-cols-3'>
 						<TabsTrigger
 							value='multi-agent'
 							className='flex items-center gap-2'>
@@ -262,15 +263,26 @@ export default function AnalysisContainer() {
 								</div>
 								{isSingleAgentRunning && singleAgentJobStatus && (
 									<div className='w-full max-w-xs'>
-										<Progress
-											value={singleAgentJobStatus.progress}
-											className='h-1'
-										/>
 										<p className='text-xs text-muted-foreground mt-1'>
 											{singleAgentJobStatus.message}
 										</p>
 									</div>
 								)}
+							</div>
+						</TabsTrigger>
+						<TabsTrigger
+							value='agent-activity'
+							className='flex items-center gap-2'>
+							<div className='flex flex-col items-start gap-1'>
+								<div className='flex items-center gap-2'>
+									Agent Activity
+									{multiAgentJobStatus && (
+										<Badge
+											className={getJobStatusColor(multiAgentJobStatus.status)}>
+											{getJobStatusLabel(multiAgentJobStatus.status)}
+										</Badge>
+									)}
+								</div>
 							</div>
 						</TabsTrigger>
 					</TabsList>
@@ -560,6 +572,20 @@ export default function AnalysisContainer() {
 									<ReportPreview company={snapshot} />
 								</section>
 							</>
+						)}
+					</TabsContent>
+
+					<TabsContent value='agent-activity' className='mt-6'>
+						{multiAgentJobStatus ? (
+							<AgentActivityDashboard
+								companyId={companyId as Id<'founderApplications'>}
+								jobId={multiAgentJobStatus._id}
+							/>
+						) : (
+							<div className='text-sm text-muted-foreground'>
+								No multi-agent analysis job found. Start a multi-agent analysis
+								to view agent activity.
+							</div>
 						)}
 					</TabsContent>
 				</Tabs>

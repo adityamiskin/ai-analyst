@@ -181,4 +181,54 @@ export default defineSchema({
 		.index('by_companyId_jobType', ['companyId', 'jobType'])
 		.index('by_companyId_createdAt', ['companyId', 'createdAt'])
 		.index('by_status_createdAt', ['status', 'createdAt']),
+
+	// Table to track agent activity and tool calls
+	agentActivity: defineTable({
+		companyId: v.id('founderApplications'),
+		jobId: v.id('analysisJobs'),
+		agentId: v.string(), // 'finance', 'evaluation', 'competitor', 'market', 'technical', 'orchestration'
+		agentName: v.string(),
+		threadId: v.string(),
+		activityType: v.union(
+			v.literal('tool_call'),
+			v.literal('tool_result'),
+			v.literal('agent_start'),
+			v.literal('agent_complete'),
+			v.literal('agent_error'),
+		),
+		toolName: v.optional(v.string()),
+		toolInput: v.optional(v.any()),
+		toolOutput: v.optional(v.any()),
+		errorMessage: v.optional(v.string()),
+		executionTimeMs: v.optional(v.number()),
+		status: v.union(
+			v.literal('pending'),
+			v.literal('running'),
+			v.literal('completed'),
+			v.literal('error'),
+		),
+		timestamp: v.number(),
+		metadata: v.optional(v.any()),
+	})
+		.index('by_companyId_jobId', ['companyId', 'jobId'])
+		.index('by_agentId_timestamp', ['agentId', 'timestamp'])
+		.index('by_companyId_agentId', ['companyId', 'agentId'])
+		.index('by_jobId_activityType', ['jobId', 'activityType']),
+
+	// Table to store agent messages for tool call extraction
+	agentMessages: defineTable({
+		companyId: v.id('founderApplications'),
+		jobId: v.id('analysisJobs'),
+		agentId: v.string(),
+		agentName: v.string(),
+		threadId: v.string(),
+		messageId: v.string(),
+		role: v.string(), // 'assistant', 'tool', 'user', 'system'
+		content: v.any(), // Raw message content
+		timestamp: v.number(),
+		metadata: v.optional(v.any()),
+	})
+		.index('by_companyId_jobId', ['companyId', 'jobId'])
+		.index('by_agentId_timestamp', ['agentId', 'timestamp'])
+		.index('by_threadId_timestamp', ['threadId', 'timestamp']),
 });

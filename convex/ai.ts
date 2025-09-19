@@ -1,112 +1,154 @@
 import { components } from './_generated/api';
-import { Agent } from '@convex-dev/agent';
+import { Agent, createTool, stepCountIs } from '@convex-dev/agent';
 import { RAG } from '@convex-dev/rag';
 import { openai } from '@ai-sdk/openai';
+import { z } from 'zod';
+import {
+	COMPANY_ANALYSIS_AGENT_INSTRUCTIONS,
+	FINANCE_AGENT_INSTRUCTIONS,
+	EVALUATION_AGENT_INSTRUCTIONS,
+	COMPETITOR_AGENT_INSTRUCTIONS,
+	MARKET_AGENT_INSTRUCTIONS,
+	TECHNICAL_AGENT_INSTRUCTIONS,
+	ORCHESTRATION_AGENT_INSTRUCTIONS,
+} from './prompt';
 
-export const companyRag = new RAG(components.rag, {
+type CompanyRagFilters = {
+	domain: string;
+	contentType: string;
+};
+
+export const companyRag = new RAG<CompanyRagFilters>(components.rag, {
+	filterNames: ['domain', 'contentType'],
 	textEmbeddingModel: openai.embedding('text-embedding-3-small'),
 	embeddingDimension: 1536,
 });
 
-// Legacy single agent for backward compatibility
-export const companyAnalysisAgent = new Agent(components.agent, {
-	name: 'CompanyAnalysisAgent',
-	instructions:
-		'You are an AI analyst that produces structured, source-grounded company snapshots with metrics, benchmarks, risks, and trust checks. Return concise, auditable outputs.',
-	languageModel: openai.responses('gpt-5-mini'),
+const getDomainContextTool = createTool({
+	description:
+		'Retrieve domain-specific context from the company knowledge base. Use this to get targeted information relevant to your analysis domain.',
+	args: z.object({
+		domain: z
+			.enum(['finance', 'technical', 'market', 'evaluation', 'competitor'])
+			.describe('The domain to search for specific analysis data'),
+		query: z
+			.string()
+			.describe(
+				'Specific search query for the domain (e.g., "revenue metrics", "technology stack", "market size")',
+			),
+		companyId: z.string().describe('The company ID to search within'),
+		limit: z
+			.number()
+			.default(15)
+			.describe('Maximum number of results to retrieve'),
+	}),
+	handler: async (ctx, args) => {
+		try {
+			const { text: contextText } = await companyRag.search(ctx, {
+				namespace: `${args.companyId}`,
+				query: `${args.domain}: ${args.query}`,
+				limit: args.limit,
+				chunkContext: { before: 1, after: 1 },
+				filters: [
+					{ name: 'domain', value: args.domain },
+					{ name: 'contentType', value: 'founderApplication' },
+				],
+			});
+
+			return {
+				success: true,
+				context: contextText,
+				domain: args.domain,
+				query: args.query,
+				companyId: args.companyId,
+				sourceCount: contextText.split('\n---\n').length,
+			};
+		} catch (error) {
+			console.warn(`Failed to retrieve ${args.domain} context:`, error);
+			return {
+				success: false,
+				context: '',
+				domain: args.domain,
+				query: args.query,
+				companyId: args.companyId,
+				error: error instanceof Error ? error.message : 'Unknown error',
+			};
+		}
+	},
 });
 
-// Multi-agent system with specialized roles
+export const companyAnalysisAgent = new Agent(components.agent, {
+	name: 'CompanyAnalysisAgent',
+	instructions: COMPANY_ANALYSIS_AGENT_INSTRUCTIONS,
+	languageModel: openai.responses('gpt-5'),
+	stopWhen: stepCountIs(5),
+	tools: {
+		getDomainContext: getDomainContextTool,
+	},
+});
+
 export const financeAgent = new Agent(components.agent, {
 	name: 'FinanceAgent',
-	instructions: `You are a specialized financial analyst focused on:
-- Financial modeling and projections
-- Revenue analysis and growth metrics
-- Unit economics and profitability
-- Funding requirements and burn rate
-- Financial risk assessment
-- Valuation analysis and comparables
-
-Use web search to find current market data, competitor financials, and industry benchmarks.
-Use code interpreter for complex financial calculations and modeling.
-Always provide specific numbers, sources, and confidence levels.`,
-	languageModel: openai.responses('gpt-5-mini'),
+	instructions: FINANCE_AGENT_INSTRUCTIONS,
+	languageModel: openai.responses('gpt-5'),
+	stopWhen: stepCountIs(5),
+	tools: {
+		web_search: openai.tools.webSearch({}),
+		getDomainContext: getDomainContextTool,
+	},
 });
 
 export const evaluationAgent = new Agent(components.agent, {
 	name: 'EvaluationAgent',
-	instructions: `You are a specialized investment evaluation analyst focused on:
-- Overall investment thesis and opportunity assessment
-- Team evaluation and founder analysis
-- Product-market fit assessment
-- Competitive positioning and differentiation
-- Market timing and "why now" factors
-- Investment recommendation and risk-return profile
-
-Use web search to research founders, competitors, and market trends.
-Use code interpreter for data analysis and modeling.
-Provide clear investment recommendations with detailed reasoning.`,
-	languageModel: openai.responses('gpt-5-mini'),
+	instructions: EVALUATION_AGENT_INSTRUCTIONS,
+	languageModel: openai.responses('gpt-5'),
+	stopWhen: stepCountIs(8),
+	tools: {
+		web_search: openai.tools.webSearch({}),
+		getDomainContext: getDomainContextTool,
+	},
 });
 
 export const competitorAgent = new Agent(components.agent, {
 	name: 'CompetitorAgent',
-	instructions: `You are a specialized competitive intelligence analyst focused on:
-- Comprehensive competitor mapping and analysis
-- Market share and positioning analysis
-- Competitive advantages and moats
-- Pricing and business model comparisons
-- Technology and feature comparisons
-- Competitive threats and opportunities
-
-Use web search extensively to find current competitor information, funding, and market data.
-Use code interpreter for competitive analysis and market sizing calculations.
-Provide detailed competitive landscape insights with specific data points.`,
-	languageModel: openai.responses('gpt-5-mini'),
+	instructions: COMPETITOR_AGENT_INSTRUCTIONS,
+	languageModel: openai.responses('gpt-5'),
+	stopWhen: stepCountIs(5),
+	tools: {
+		web_search: openai.tools.webSearch({}),
+		getDomainContext: getDomainContextTool,
+	},
 });
 
 export const marketAgent = new Agent(components.agent, {
 	name: 'MarketAgent',
-	instructions: `You are a specialized market research analyst focused on:
-- Total Addressable Market (TAM) analysis
-- Serviceable Addressable Market (SAM) and Serviceable Obtainable Market (SOM)
-- Market trends and growth drivers
-- Customer segmentation and personas
-- Go-to-market strategy evaluation
-- Market timing and adoption curves
-
-Use web search to find current market research, industry reports, and trend data.
-Use code interpreter for market sizing calculations and trend analysis.
-Provide comprehensive market insights with data-driven conclusions.`,
-	languageModel: openai.responses('gpt-5-mini'),
+	instructions: MARKET_AGENT_INSTRUCTIONS,
+	languageModel: openai.responses('gpt-5'),
+	stopWhen: stepCountIs(8),
+	tools: {
+		web_search: openai.tools.webSearch({}),
+		getDomainContext: getDomainContextTool,
+	},
 });
 
 export const technicalAgent = new Agent(components.agent, {
 	name: 'TechnicalAgent',
-	instructions: `You are a specialized technical assessment analyst focused on:
-- Technology stack and architecture evaluation
-- Product development and engineering capabilities
-- Technical scalability and performance
-- Intellectual property and defensibility
-- Technical risks and challenges
-- Innovation and differentiation assessment
-
-Use web search to research technology trends, patents, and technical standards.
-Use code interpreter for technical analysis and performance calculations.
-Provide detailed technical insights with specific technical recommendations.`,
-	languageModel: openai.responses('gpt-5-mini'),
+	instructions: TECHNICAL_AGENT_INSTRUCTIONS,
+	languageModel: openai.responses('gpt-5'),
+	stopWhen: stepCountIs(8),
+	tools: {
+		web_search: openai.tools.webSearch({}),
+		getDomainContext: getDomainContextTool,
+	},
 });
 
 export const orchestrationAgent = new Agent(components.agent, {
 	name: 'OrchestrationAgent',
-	instructions: `You are a senior investment analyst responsible for:
-- Synthesizing insights from all specialized agents
-- Providing final investment recommendation
-- Consolidating metrics and risks across all domains
-- Ensuring consistency and coherence in the overall analysis
-- Making final investment decision with clear reasoning
-
-Focus on high-level synthesis and strategic insights rather than detailed analysis.
-Provide clear, actionable investment recommendations with confidence levels.`,
-	languageModel: openai.responses('gpt-5-mini'),
+	instructions: ORCHESTRATION_AGENT_INSTRUCTIONS,
+	languageModel: openai.responses('gpt-5'),
+	stopWhen: stepCountIs(6),
+	tools: {
+		web_search: openai.tools.webSearch({}),
+		getDomainContext: getDomainContextTool,
+	},
 });

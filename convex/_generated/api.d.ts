@@ -8,10 +8,12 @@
  * @module
  */
 
+import type * as agent_activity from "../agent_activity.js";
 import type * as ai from "../ai.js";
 import type * as analysis from "../analysis.js";
 import type * as founders from "../founders.js";
 import type * as multi_agent_analysis from "../multi_agent_analysis.js";
+import type * as prompt from "../prompt.js";
 
 import type {
   ApiFromModules,
@@ -28,10 +30,12 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  agent_activity: typeof agent_activity;
   ai: typeof ai;
   analysis: typeof analysis;
   founders: typeof founders;
   multi_agent_analysis: typeof multi_agent_analysis;
+  prompt: typeof prompt;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

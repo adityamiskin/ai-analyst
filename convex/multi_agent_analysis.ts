@@ -7,6 +7,8 @@ import {
 } from './_generated/server';
 import { v } from 'convex/values';
 import { z } from 'zod';
+import { generateObject, Output } from 'ai';
+import { google } from '@ai-sdk/google';
 import {
 	financeAgent,
 	evaluationAgent,
@@ -14,137 +16,343 @@ import {
 	marketAgent,
 	technicalAgent,
 	orchestrationAgent,
-	companyRag,
 } from './ai';
 import { api, internal } from './_generated/api';
 
 // Zod schemas for each agent's analysis - made more flexible
 const agentAnalysisSchema = z.object({
-	agentId: z.string(),
-	agentName: z.string(),
-	summary: z.string(),
-	confidence: z.number().min(0).max(1).default(0.5),
-	keyFindings: z.array(z.string()).default([]),
+	agentId: z
+		.string()
+		.describe(
+			"Unique identifier for the agent type (e.g., 'finance', 'evaluation', 'competitor', 'market', 'technical')",
+		),
+	agentName: z
+		.string()
+		.describe(
+			"Human-readable name of the agent (e.g., 'Financial Analysis Agent', 'Investment Evaluation Agent')",
+		),
+	summary: z
+		.string()
+		.describe(
+			'Concise executive summary of the analysis findings and key conclusions',
+		),
+	confidence: z
+		.number()
+		.min(0)
+		.max(1)
+		.default(0.5)
+		.describe(
+			'Confidence level in the analysis (0.0 to 1.0, where 1.0 is highest confidence)',
+		),
+	keyFindings: z
+		.array(z.string())
+		.default([])
+		.describe(
+			'Array of the most important findings and insights from the analysis',
+		),
 	metrics: z
 		.array(
 			z.object({
-				key: z.string(),
-				label: z.string(),
-				value: z.number().default(0),
-				unit: z.string().optional(),
-				peerMedian: z.number().optional(),
+				key: z
+					.string()
+					.describe(
+						"Unique identifier for the metric (e.g., 'revenue_2024', 'tam_2024')",
+					),
+				label: z
+					.string()
+					.describe(
+						"Human-readable label for the metric (e.g., '2024 Revenue', 'Total Addressable Market')",
+					),
+				value: z
+					.number()
+					.default(0)
+					.describe('The numeric value of the metric'),
+				unit: z
+					.string()
+					.optional()
+					.describe("Unit of measurement (e.g., 'USD', '%', 'users')"),
+				peerMedian: z
+					.number()
+					.optional()
+					.describe(
+						'Median value from comparable companies or industry benchmarks',
+					),
 				sources: z
 					.array(
 						z.object({
-							title: z.string().default('Unknown'),
-							url: z.string().default(''),
-							date: z.string().default(new Date().toISOString().split('T')[0]),
-							confidence: z.number().default(0.5),
-							extractedFacts: z.array(z.string()).default([]),
+							title: z
+								.string()
+								.default('Unknown')
+								.describe('Title or name of the source document or website'),
+							url: z
+								.string()
+								.default('')
+								.describe('URL of the source if available'),
+							date: z
+								.string()
+								.default(new Date().toISOString().split('T')[0])
+								.describe('Date when the source was accessed or published'),
+							confidence: z
+								.number()
+								.default(0.5)
+								.describe(
+									'Confidence level in this specific source (0.0 to 1.0)',
+								),
+							extractedFacts: z
+								.array(z.string())
+								.default([])
+								.describe('Key facts extracted from this source'),
 						}),
 					)
-					.default([]),
+					.default([])
+					.describe('Sources used to calculate or validate this metric'),
 				checks: z
 					.array(
 						z.object({
-							label: z.string(),
-							status: z.enum(['pass', 'warn']).default('pass'),
-							note: z.string().optional(),
+							label: z
+								.string()
+								.describe(
+									"Name of the validation check (e.g., 'Revenue growth', 'Market validation')",
+								),
+							status: z
+								.enum(['pass', 'warn'])
+								.default('pass')
+								.describe(
+									"Result of the check - 'pass' for good, 'warn' for concerning",
+								),
+							note: z
+								.string()
+								.optional()
+								.describe(
+									'Additional context or explanation for the check result',
+								),
 						}),
 					)
-					.default([]),
+					.default([])
+					.describe('Validation checks performed on this metric'),
 			}),
 		)
-		.default([]),
+		.default([])
+		.describe(
+			'Key quantitative metrics with benchmarks, sources, and validation checks',
+		),
 	risks: z
 		.array(
 			z.object({
-				severity: z.enum(['low', 'med', 'high']).default('low'),
-				label: z.string(),
-				evidence: z.string(),
+				severity: z
+					.enum(['low', 'med', 'high'])
+					.default('low')
+					.describe(
+						"Risk severity level: 'low' for minor concerns, 'med' for moderate impact, 'high' for major threats",
+					),
+				label: z
+					.string()
+					.describe(
+						"Brief name or title of the risk (e.g., 'Market competition', 'Technology risk')",
+					),
+				evidence: z
+					.string()
+					.describe(
+						'Specific evidence, data, or reasoning supporting this risk assessment',
+					),
 			}),
 		)
-		.default([]),
+		.default([])
+		.describe('Identified risks with severity levels and supporting evidence'),
 	sources: z
 		.array(
 			z.object({
-				title: z.string().default('Unknown'),
-				url: z.string().default(''),
-				date: z.string().default(new Date().toISOString().split('T')[0]),
-				confidence: z.number().default(0.5),
-				extractedFacts: z.array(z.string()).default([]),
+				title: z
+					.string()
+					.default('Unknown')
+					.describe('Title or name of the source document or website'),
+				url: z.string().default('').describe('URL of the source if available'),
+				date: z
+					.string()
+					.default(new Date().toISOString().split('T')[0])
+					.describe('Date when the source was accessed or published'),
+				confidence: z
+					.number()
+					.default(0.5)
+					.describe('Confidence level in this source (0.0 to 1.0)'),
+				extractedFacts: z
+					.array(z.string())
+					.default([])
+					.describe('Key facts extracted from this source'),
 			}),
 		)
-		.default([]),
-	recommendations: z.array(z.string()).default([]),
-	lastUpdated: z.string().default(new Date().toISOString().split('T')[0]),
+		.default([])
+		.describe('External sources used in the analysis with confidence levels'),
+	recommendations: z
+		.array(z.string())
+		.default([])
+		.describe('Specific, actionable recommendations based on the analysis'),
+	lastUpdated: z
+		.string()
+		.default(new Date().toISOString().split('T')[0])
+		.describe('Date when this analysis was last updated (YYYY-MM-DD format)'),
 });
 
 const multiAgentSnapshotSchema = z.object({
-	company: z.string(),
-	sector: z.string().default('Unknown'),
-	stage: z.string().default('Unknown'),
-	ask: z.string().default('Unknown'),
-	overallSummary: z.string(),
-	overallConfidence: z.number().min(0).max(1).default(0.5),
-	lastUpdated: z.string().default(new Date().toISOString().split('T')[0]),
-	agentAnalyses: z.array(agentAnalysisSchema).default([]),
+	company: z.string().describe('Name of the company being analyzed'),
+	sector: z
+		.string()
+		.default('Unknown')
+		.describe(
+			"Industry sector the company operates in (e.g., 'Technology', 'Healthcare', 'Fintech')",
+		),
+	stage: z
+		.string()
+		.default('Unknown')
+		.describe(
+			"Current funding stage of the company (e.g., 'Seed', 'Series A', 'Series B')",
+		),
+	ask: z
+		.string()
+		.default('Unknown')
+		.describe(
+			"Current funding ask or valuation (e.g., '$5M at $25M pre-money')",
+		),
+	overallSummary: z
+		.string()
+		.describe(
+			'Executive summary synthesizing all agent analyses and key investment conclusions',
+		),
+	overallConfidence: z
+		.number()
+		.min(0)
+		.max(1)
+		.default(0.5)
+		.describe('Overall confidence level in the complete analysis (0.0 to 1.0)'),
+	lastUpdated: z
+		.string()
+		.default(new Date().toISOString().split('T')[0])
+		.describe('Date when this snapshot was last updated (YYYY-MM-DD format)'),
+	agentAnalyses: z
+		.array(agentAnalysisSchema)
+		.default([])
+		.describe(
+			'Complete analysis results from all specialized agents (finance, evaluation, competitor, market, technical)',
+		),
 	consolidatedMetrics: z
 		.array(
 			z.object({
-				key: z.string(),
-				label: z.string(),
-				value: z.number().default(0),
-				unit: z.string().optional(),
-				peerMedian: z.number().optional(),
+				key: z
+					.string()
+					.describe('Unique identifier for the consolidated metric'),
+				label: z.string().describe('Human-readable label for the metric'),
+				value: z.number().default(0).describe('The consolidated numeric value'),
+				unit: z.string().optional().describe('Unit of measurement'),
+				peerMedian: z
+					.number()
+					.optional()
+					.describe('Industry or peer median for comparison'),
 				sources: z
 					.array(
 						z.object({
-							title: z.string().default('Unknown'),
-							url: z.string().default(''),
-							date: z.string().default(new Date().toISOString().split('T')[0]),
-							confidence: z.number().default(0.5),
-							extractedFacts: z.array(z.string()).default([]),
+							title: z
+								.string()
+								.default('Unknown')
+								.describe('Source document or website title'),
+							url: z.string().default('').describe('URL of the source'),
+							date: z
+								.string()
+								.default(new Date().toISOString().split('T')[0])
+								.describe('Date when source was accessed'),
+							confidence: z
+								.number()
+								.default(0.5)
+								.describe('Confidence in this source'),
+							extractedFacts: z
+								.array(z.string())
+								.default([])
+								.describe('Key facts from this source'),
 						}),
 					)
-					.default([]),
+					.default([])
+					.describe('Sources supporting this consolidated metric'),
 				checks: z
 					.array(
 						z.object({
-							label: z.string(),
-							status: z.enum(['pass', 'warn']).default('pass'),
-							note: z.string().optional(),
+							label: z.string().describe('Validation check name'),
+							status: z
+								.enum(['pass', 'warn'])
+								.default('pass')
+								.describe('Check result status'),
+							note: z
+								.string()
+								.optional()
+								.describe('Additional context for the check'),
 						}),
 					)
-					.default([]),
+					.default([])
+					.describe('Validation checks for this consolidated metric'),
 			}),
 		)
-		.default([]),
+		.default([])
+		.describe('Cross-agent consolidated metrics with sources and validation'),
 	consolidatedRisks: z
 		.array(
 			z.object({
-				severity: z.enum(['low', 'med', 'high']).default('low'),
-				label: z.string(),
-				evidence: z.string(),
+				severity: z
+					.enum(['low', 'med', 'high'])
+					.default('low')
+					.describe('Risk severity level across all analyses'),
+				label: z.string().describe('Consolidated risk name or title'),
+				evidence: z
+					.string()
+					.describe('Combined evidence from multiple agent analyses'),
 			}),
 		)
-		.default([]),
+		.default([])
+		.describe('Consolidated risks identified across all agent analyses'),
 	investmentRecommendation: z
 		.enum(['strong_buy', 'buy', 'hold', 'sell', 'strong_sell'])
-		.default('hold'),
-	recommendationReasoning: z.string().default('Analysis in progress'),
+		.default('hold')
+		.describe('Final investment recommendation based on all agent analyses'),
+	recommendationReasoning: z
+		.string()
+		.default('Analysis in progress')
+		.describe(
+			'Detailed reasoning behind the investment recommendation, citing key factors from all analyses',
+		),
 });
 
-// Helper function to build application text (reused from analysis.ts)
-function buildApplicationText(app: any): string {
+// Helper function to convert generated text to structured object using AI
+async function convertTextToObject(
+	text: string,
+	schema: z.ZodSchema,
+	ctx: any,
+): Promise<any> {
+	try {
+		const result = await generateObject({
+			model: google('gemini-2.5-flash'),
+			prompt: `Convert the following analysis text into a structured object that matches the provided schema.
+
+			Analysis text:
+			${text}`,
+			schema,
+		});
+
+		return result.object;
+	} catch (error) {
+		console.error('Failed to convert text to object:', error);
+		throw new Error(
+			`Failed to convert text to structured object: ${
+				error instanceof Error ? error.message : 'Unknown error'
+			}`,
+		);
+	}
+}
+
+// Build baseline context shared by all agents
+function buildBaselineContext(app: any): string {
 	const parts: string[] = [];
 	if (!app) return '';
 	const c = app.company ?? {};
 	const t = app.team ?? {};
-	const p = app.product ?? {};
-	const m = app.market ?? {};
-	const tr = app.traction ?? {};
-	parts.push(`# Company`);
+
+	parts.push(`# Company Overview`);
 	parts.push(`Name: ${c.name}`);
 	parts.push(`Website: ${c.website}`);
 	parts.push(`Location: ${c.location}`);
@@ -153,47 +361,23 @@ function buildApplicationText(app: any): string {
 	parts.push(`What do you do: ${c.whatDoYouDo}`);
 	parts.push(`Why now: ${c.whyNow}`);
 
-	parts.push(`\n# Team`);
+	parts.push(`\n# Team Basics`);
 	parts.push(
 		`Founders: ${(t.founders ?? [])
-			.map((f: any) => `${f.name} <${f.email}> (${f.designation})`)
+			.map((f: any) => `${f.name} (${f.designation})`)
 			.join('; ')}`,
 	);
 	parts.push(`Full-time: ${t.isFullTime}`);
 	parts.push(`How long worked: ${t.howLongWorked}`);
-	parts.push(`Relevant experience: ${t.relevantExperience}`);
-
-	parts.push(`\n# Product`);
-	parts.push(`Description: ${p.description}`);
-	parts.push(`Demo URL: ${p.demoUrl}`);
-	parts.push(`Defensibility: ${p.defensibility}`);
-
-	parts.push(`\n# Market`);
-	parts.push(`Customer: ${m.customer}`);
-	parts.push(`Competitors: ${m.competitors}`);
-	parts.push(`Differentiation: ${m.differentiation}`);
-	parts.push(`GTM: ${m.gtm}`);
-	parts.push(`TAM: ${m.tam}`);
-	parts.push(`SAM: ${m.sam}`);
-	parts.push(`SOM: ${m.som}`);
-
-	parts.push(`\n# Traction`);
-	parts.push(`Launched: ${tr.isLaunched}`);
-	parts.push(`Launch date: ${tr.launchDate}`);
-	parts.push(`MRR: ${tr.mrr}`);
-	parts.push(`Growth: ${tr.growth}`);
-	parts.push(`Active users: ${tr.activeUsersCount}`);
-	parts.push(`Pilots: ${tr.pilots}`);
-	parts.push(`KPIs: ${tr.kpis}`);
 
 	return parts.filter(Boolean).join('\n');
 }
 
-// Individual agent analysis functions
 async function runFinanceAnalysis(
 	ctx: any,
 	companyId: string,
-	contextText: string,
+	baselineContext: string,
+	jobId: string,
 ) {
 	const { thread } = await financeAgent.createThread(ctx, {
 		title: `Finance Analysis ${companyId}`,
@@ -201,37 +385,55 @@ async function runFinanceAnalysis(
 
 	const today = new Date().toISOString().split('T')[0];
 
-	const prompt = `You are a financial analyst. Analyze the company's financial aspects and return a JSON object.
+	const prompt = `Analyze the company's financial aspects comprehensively using your specialized tools and knowledge.
 
-Required JSON format:
-{
-  "agentId": "finance",
-  "agentName": "Financial Analysis Agent", 
-  "summary": "Brief financial summary",
-  "confidence": 0.8,
-  "keyFindings": ["Key finding 1", "Key finding 2"],
-  "metrics": [],
-  "risks": [{"severity": "low", "label": "Risk name", "evidence": "Risk description"}],
-  "sources": [],
-  "recommendations": ["Recommendation 1", "Recommendation 2"],
-  "lastUpdated": "${today}"
-}
-
-Focus on: revenue, growth, unit economics, funding needs, financial risks.
-
-Company context: ${contextText}`;
+Company baseline context: ${baselineContext}`;
 
 	try {
-		const result = await thread.generateObject(
-			{ prompt, schema: agentAnalysisSchema },
+		const result = await thread.generateText(
+			{
+				prompt,
+				experimental_output: Output.object({
+					schema: agentAnalysisSchema,
+				}),
+			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		return result.object;
+		// Extract agent activity after completion
+		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'finance',
+			agentName: 'Financial Analysis Agent',
+			threadId: thread.threadId,
+		});
+
+		// // Convert the generated text to structured object
+		// const structuredResult = await convertTextToObject(
+		// 	result.text,
+		// 	agentAnalysisSchema,
+		// 	ctx,
+		// );
+
+		return result.experimental_output;
 	} catch (error) {
 		console.error('Finance analysis failed:', error);
+
+		// Log agent error
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'finance',
+			agentName: 'Financial Analysis Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_error',
+			status: 'error',
+			errorMessage: error instanceof Error ? error.message : 'Unknown error',
+		});
+
 		// Return a fallback analysis
 		return {
 			agentId: 'finance',
@@ -258,7 +460,8 @@ Company context: ${contextText}`;
 async function runEvaluationAnalysis(
 	ctx: any,
 	companyId: string,
-	contextText: string,
+	baselineContext: string,
+	jobId: string,
 ) {
 	const { thread } = await evaluationAgent.createThread(ctx, {
 		title: `Evaluation Analysis ${companyId}`,
@@ -266,37 +469,55 @@ async function runEvaluationAnalysis(
 
 	const today = new Date().toISOString().split('T')[0];
 
-	const prompt = `You are an investment analyst. Evaluate the investment opportunity and return a JSON object.
+	const prompt = `Evaluate the investment opportunity comprehensively using your specialized tools and knowledge.
 
-Required JSON format:
-{
-  "agentId": "evaluation",
-  "agentName": "Investment Evaluation Agent",
-  "summary": "Brief investment evaluation summary",
-  "confidence": 0.8,
-  "keyFindings": ["Key finding 1", "Key finding 2"],
-  "metrics": [],
-  "risks": [{"severity": "low", "label": "Risk name", "evidence": "Risk description"}],
-  "sources": [],
-  "recommendations": ["Recommendation 1", "Recommendation 2"],
-  "lastUpdated": "${today}"
-}
-
-Focus on: investment thesis, team quality, product-market fit, competitive position, market timing.
-
-Company context: ${contextText}`;
+Company baseline context: ${baselineContext}`;
 
 	try {
-		const result = await thread.generateObject(
-			{ prompt, schema: agentAnalysisSchema },
+		const result = await thread.generateText(
+			{
+				prompt,
+				experimental_output: Output.object({
+					schema: agentAnalysisSchema,
+				}),
+			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		return result.object;
+		// Extract agent activity after completion
+		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'evaluation',
+			agentName: 'Investment Evaluation Agent',
+			threadId: thread.threadId,
+		});
+
+		// Convert the generated text to structured object
+		//const structuredResult = await convertTextToObject(
+		//	result.text,
+		// 	agentAnalysisSchema,
+		// 	ctx,
+		// );
+
+		return result.experimental_output;
 	} catch (error) {
 		console.error('Evaluation analysis failed:', error);
+
+		// Log agent error
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'evaluation',
+			agentName: 'Investment Evaluation Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_error',
+			status: 'error',
+			errorMessage: error instanceof Error ? error.message : 'Unknown error',
+		});
+
 		// Return a fallback analysis
 		return {
 			agentId: 'evaluation',
@@ -323,7 +544,8 @@ Company context: ${contextText}`;
 async function runCompetitorAnalysis(
 	ctx: any,
 	companyId: string,
-	contextText: string,
+	baselineContext: string,
+	jobId: string,
 ) {
 	const { thread } = await competitorAgent.createThread(ctx, {
 		title: `Competitor Analysis ${companyId}`,
@@ -331,43 +553,63 @@ async function runCompetitorAnalysis(
 
 	const today = new Date().toISOString().split('T')[0];
 
-	const prompt = `You are a competitive analyst. Analyze the competitive landscape and return a JSON object.
+	const prompt = `Analyze the competitive landscape comprehensively using your specialized tools and knowledge.
 
-Required JSON format:
-{
-  "agentId": "competitor",
-  "agentName": "Competitive Intelligence Agent",
-  "summary": "Brief competitive analysis summary",
-  "confidence": 0.8,
-  "keyFindings": ["Key finding 1", "Key finding 2"],
-  "metrics": [],
-  "risks": [{"severity": "low", "label": "Risk name", "evidence": "Risk description"}],
-  "sources": [],
-  "recommendations": ["Recommendation 1", "Recommendation 2"],
-  "lastUpdated": "${today}"
-}
-
-Focus on: competitors, market positioning, competitive advantages, threats.
-
-Company context: ${contextText}`;
+Company baseline context: ${baselineContext}`;
 
 	try {
-		const result = await thread.generateObject(
-			{ prompt, schema: agentAnalysisSchema },
+		const result = await thread.generateText(
+			{
+				prompt,
+				experimental_output: Output.object({
+					schema: agentAnalysisSchema,
+				}),
+			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		return result.object;
+		// Extract agent activity after completion
+		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'competitor',
+			agentName: 'Competitive Analysis Agent',
+			threadId: thread.threadId,
+		});
+
+		// Convert the generated text to structured object
+		// const structuredResult = await convertTextToObject(
+		// 	result.text,
+		// 	agentAnalysisSchema,
+		// 	ctx,
+		// );
+
+		console.log('Competitor analysis completed');
+
+		return result.experimental_output;
 	} catch (error) {
-		console.error('Agent analysis failed:', error);
+		console.error('Competitor analysis failed:', error);
+
+		// Log agent error
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'competitor',
+			agentName: 'Competitive Analysis Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_error',
+			status: 'error',
+			errorMessage: error instanceof Error ? error.message : 'Unknown error',
+		});
+
 		// Return a fallback analysis
 		return {
-			agentId: 'unknown',
-			agentName: 'Analysis Agent',
+			agentId: 'competitor',
+			agentName: 'Competitive Analysis Agent',
 			summary:
-				'Analysis could not be completed due to an error. Please try again.',
+				'Competitive analysis could not be completed due to an error. Please try again.',
 			confidence: 0.1,
 			keyFindings: ['Analysis failed - insufficient data'],
 			metrics: [],
@@ -375,7 +617,7 @@ Company context: ${contextText}`;
 				{
 					severity: 'high' as const,
 					label: 'Analysis Error',
-					evidence: 'Unable to complete analysis',
+					evidence: 'Unable to complete competitive analysis',
 				},
 			],
 			sources: [],
@@ -388,7 +630,8 @@ Company context: ${contextText}`;
 async function runMarketAnalysis(
 	ctx: any,
 	companyId: string,
-	contextText: string,
+	baselineContext: string,
+	jobId: string,
 ) {
 	const { thread } = await marketAgent.createThread(ctx, {
 		title: `Market Analysis ${companyId}`,
@@ -396,43 +639,63 @@ async function runMarketAnalysis(
 
 	const today = new Date().toISOString().split('T')[0];
 
-	const prompt = `You are a market analyst. Analyze the market opportunity and return a JSON object.
+	const prompt = `Analyze the market opportunity comprehensively using your specialized tools and knowledge.
 
-Required JSON format:
-{
-  "agentId": "market",
-  "agentName": "Market Research Agent",
-  "summary": "Brief market analysis summary",
-  "confidence": 0.8,
-  "keyFindings": ["Key finding 1", "Key finding 2"],
-  "metrics": [],
-  "risks": [{"severity": "low", "label": "Risk name", "evidence": "Risk description"}],
-  "sources": [],
-  "recommendations": ["Recommendation 1", "Recommendation 2"],
-  "lastUpdated": "${today}"
-}
-
-Focus on: market size, trends, customer segments, go-to-market strategy.
-
-Company context: ${contextText}`;
+Company baseline context: ${baselineContext}`;
 
 	try {
-		const result = await thread.generateObject(
-			{ prompt, schema: agentAnalysisSchema },
+		const result = await thread.generateText(
+			{
+				prompt,
+				experimental_output: Output.object({
+					schema: agentAnalysisSchema,
+				}),
+			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		return result.object;
+		// Extract agent activity after completion
+		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'market',
+			agentName: 'Market Analysis Agent',
+			threadId: thread.threadId,
+		});
+
+		// Convert the generated text to structured object
+		// const structuredResult = await convertTextToObject(
+		// 	result.text,
+		// 	agentAnalysisSchema,
+		// 	ctx,
+		// );
+
+		console.log('Market analysis completed');
+
+		return result.experimental_output;
 	} catch (error) {
-		console.error('Agent analysis failed:', error);
+		console.error('Market analysis failed:', error);
+
+		// Log agent error
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'market',
+			agentName: 'Market Analysis Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_error',
+			status: 'error',
+			errorMessage: error instanceof Error ? error.message : 'Unknown error',
+		});
+
 		// Return a fallback analysis
 		return {
-			agentId: 'unknown',
-			agentName: 'Analysis Agent',
+			agentId: 'market',
+			agentName: 'Market Analysis Agent',
 			summary:
-				'Analysis could not be completed due to an error. Please try again.',
+				'Market analysis could not be completed due to an error. Please try again.',
 			confidence: 0.1,
 			keyFindings: ['Analysis failed - insufficient data'],
 			metrics: [],
@@ -440,7 +703,7 @@ Company context: ${contextText}`;
 				{
 					severity: 'high' as const,
 					label: 'Analysis Error',
-					evidence: 'Unable to complete analysis',
+					evidence: 'Unable to complete market analysis',
 				},
 			],
 			sources: [],
@@ -453,7 +716,8 @@ Company context: ${contextText}`;
 async function runTechnicalAnalysis(
 	ctx: any,
 	companyId: string,
-	contextText: string,
+	baselineContext: string,
+	jobId: string,
 ) {
 	const { thread } = await technicalAgent.createThread(ctx, {
 		title: `Technical Analysis ${companyId}`,
@@ -461,43 +725,63 @@ async function runTechnicalAnalysis(
 
 	const today = new Date().toISOString().split('T')[0];
 
-	const prompt = `You are a technical analyst. Analyze the technical aspects and return a JSON object.
+	const prompt = `Analyze the technical aspects comprehensively using your specialized tools and knowledge.
 
-Required JSON format:
-{
-  "agentId": "technical",
-  "agentName": "Technical Assessment Agent",
-  "summary": "Brief technical analysis summary",
-  "confidence": 0.8,
-  "keyFindings": ["Key finding 1", "Key finding 2"],
-  "metrics": [],
-  "risks": [{"severity": "low", "label": "Risk name", "evidence": "Risk description"}],
-  "sources": [],
-  "recommendations": ["Recommendation 1", "Recommendation 2"],
-  "lastUpdated": "${today}"
-}
-
-Focus on: technology stack, scalability, IP, technical risks, innovation.
-
-Company context: ${contextText}`;
+Company baseline context: ${baselineContext}`;
 
 	try {
-		const result = await thread.generateObject(
-			{ prompt, schema: agentAnalysisSchema },
+		const result = await thread.generateText(
+			{
+				prompt,
+				experimental_output: Output.object({
+					schema: agentAnalysisSchema,
+				}),
+			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		return result.object;
+		// Extract agent activity after completion
+		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'technical',
+			agentName: 'Technical Analysis Agent',
+			threadId: thread.threadId,
+		});
+
+		// Convert the generated text to structured object
+		// const structuredResult = await convertTextToObject(
+		// 	result.text,
+		// 	agentAnalysisSchema,
+		// 	ctx,
+		// );
+
+		console.log('Technical analysis completed');
+
+		return result.experimental_output;
 	} catch (error) {
-		console.error('Agent analysis failed:', error);
+		console.error('Technical analysis failed:', error);
+
+		// Log agent error
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'technical',
+			agentName: 'Technical Analysis Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_error',
+			status: 'error',
+			errorMessage: error instanceof Error ? error.message : 'Unknown error',
+		});
+
 		// Return a fallback analysis
 		return {
-			agentId: 'unknown',
-			agentName: 'Analysis Agent',
+			agentId: 'technical',
+			agentName: 'Technical Analysis Agent',
 			summary:
-				'Analysis could not be completed due to an error. Please try again.',
+				'Technical analysis could not be completed due to an error. Please try again.',
 			confidence: 0.1,
 			keyFindings: ['Analysis failed - insufficient data'],
 			metrics: [],
@@ -505,7 +789,7 @@ Company context: ${contextText}`;
 				{
 					severity: 'high' as const,
 					label: 'Analysis Error',
-					evidence: 'Unable to complete analysis',
+					evidence: 'Unable to complete technical analysis',
 				},
 			],
 			sources: [],
@@ -551,6 +835,12 @@ export const updateJobStatus = internalMutation({
 export const runMultiAgentAnalysis = internalAction({
 	args: { companyId: v.id('founderApplications'), jobId: v.id('analysisJobs') },
 	handler: async (ctx, { companyId, jobId }) => {
+		// Set up timeout to prevent function from running too long
+		const timeoutMs = 8 * 60 * 1000; // 8 minutes (less than 10 minute Convex limit)
+		const timeoutId = setTimeout(() => {
+			throw new Error('Analysis timeout - function exceeded 8 minutes');
+		}, timeoutMs);
+
 		try {
 			// Update job status to running
 			await ctx.runMutation(internal.multi_agent_analysis.updateJobStatus, {
@@ -584,14 +874,11 @@ export const runMultiAgentAnalysis = internalAction({
 				message: 'Retrieving company context...',
 			});
 
-			// Retrieve context from RAG
-			const { text: contextText } = await companyRag.search(ctx, {
-				namespace: `${companyId}`,
-				query:
-					'company overview, product, market, tam, traction, mrr, growth, risks, competitors, differentiation, team, technology, financials',
-				limit: 30,
-				chunkContext: { before: 1, after: 1 },
+			// Get baseline company data for shared context
+			const companyDoc = await ctx.runQuery(api.founders.getApplication, {
+				id: companyId,
 			});
+			const baselineContext = buildBaselineContext(companyDoc);
 
 			// Update job status for agent analysis phase
 			await ctx.runMutation(internal.multi_agent_analysis.updateJobStatus, {
@@ -601,7 +888,7 @@ export const runMultiAgentAnalysis = internalAction({
 				message: 'Running specialized agent analyses...',
 			});
 
-			// Run all agent analyses in parallel
+			// Run all agent analyses in parallel with hybrid context approach
 			const [
 				financeAnalysis,
 				evaluationAnalysis,
@@ -609,11 +896,11 @@ export const runMultiAgentAnalysis = internalAction({
 				marketAnalysis,
 				technicalAnalysis,
 			] = await Promise.all([
-				runFinanceAnalysis(ctx, companyId, contextText),
-				runEvaluationAnalysis(ctx, companyId, contextText),
-				runCompetitorAnalysis(ctx, companyId, contextText),
-				runMarketAnalysis(ctx, companyId, contextText),
-				runTechnicalAnalysis(ctx, companyId, contextText),
+				runFinanceAnalysis(ctx, companyId, baselineContext, jobId),
+				runEvaluationAnalysis(ctx, companyId, baselineContext, jobId),
+				runCompetitorAnalysis(ctx, companyId, baselineContext, jobId),
+				runMarketAnalysis(ctx, companyId, baselineContext, jobId),
+				runTechnicalAnalysis(ctx, companyId, baselineContext, jobId),
 			]);
 
 			// Update job status for orchestration phase
@@ -631,29 +918,9 @@ export const runMultiAgentAnalysis = internalAction({
 
 			const today = new Date().toISOString().split('T')[0];
 
-			const orchestrationPrompt = `You are an investment analyst. Synthesize the agent analyses and return a JSON object.
+			const orchestrationPrompt = `Synthesize all agent analyses and provide a comprehensive investment recommendation using your specialized tools and knowledge.
 
-Required JSON format:
-{
-  "company": "Company Name",
-  "sector": "Technology",
-  "stage": "Seed",
-  "ask": "Funding amount",
-  "overallSummary": "Brief overall summary",
-  "overallConfidence": 0.8,
-  "lastUpdated": "${today}",
-  "agentAnalyses": [${JSON.stringify(financeAnalysis)}, ${JSON.stringify(
-				evaluationAnalysis,
-			)}, ${JSON.stringify(competitorAnalysis)}, ${JSON.stringify(
-				marketAnalysis,
-			)}, ${JSON.stringify(technicalAnalysis)}],
-  "consolidatedMetrics": [],
-  "consolidatedRisks": [{"severity": "low", "label": "Risk", "evidence": "Description"}],
-  "investmentRecommendation": "hold",
-  "recommendationReasoning": "Brief reasoning"
-}
-
-Agent analyses:
+Agent analyses summaries:
 Finance: ${financeAnalysis.summary}
 Evaluation: ${evaluationAnalysis.summary}
 Competitor: ${competitorAnalysis.summary}
@@ -661,17 +928,28 @@ Market: ${marketAnalysis.summary}
 Technical: ${technicalAnalysis.summary}`;
 
 			try {
-				const orchestrationResult = await thread.generateObject(
-					{ prompt: orchestrationPrompt, schema: multiAgentSnapshotSchema },
+				const orchestrationResult = await thread.generateText(
+					{
+						prompt: orchestrationPrompt,
+						experimental_output: Output.object({
+							schema: multiAgentSnapshotSchema,
+						}),
+					},
 					{
 						storageOptions: { saveMessages: 'all' },
 					},
 				);
 
-				const snapshot = orchestrationResult.object;
+				// Convert the generated text to structured object
+				// const snapshot = await convertTextToObject(
+				// orchestrationResult.text,
+				// 	multiAgentSnapshotSchema,
+				// 	ctx,
+				// );
 
 				// Ensure lastUpdated
-				if (!snapshot.lastUpdated) snapshot.lastUpdated = today;
+				if (!orchestrationResult.experimental_output.lastUpdated)
+					orchestrationResult.experimental_output.lastUpdated = today;
 
 				// Update job status for saving
 				await ctx.runMutation(internal.multi_agent_analysis.updateJobStatus, {
@@ -683,7 +961,7 @@ Technical: ${technicalAnalysis.summary}`;
 
 				await ctx.runMutation(api.multi_agent_analysis.saveMultiAgentSnapshot, {
 					companyId,
-					snapshot,
+					snapshot: orchestrationResult.experimental_output,
 				});
 
 				// Mark job as completed
@@ -750,6 +1028,9 @@ Technical: ${technicalAnalysis.summary}`;
 				error: error instanceof Error ? error.message : 'Unknown error',
 			});
 			throw error;
+		} finally {
+			// Clear the timeout
+			clearTimeout(timeoutId);
 		}
 	},
 });

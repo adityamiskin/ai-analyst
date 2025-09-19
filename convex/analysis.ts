@@ -7,10 +7,12 @@ import {
 } from './_generated/server';
 import { v } from 'convex/values';
 import { z } from 'zod';
+import { generateObject } from 'ai';
 import { companyAnalysisAgent, companyRag } from './ai';
 import { api, internal } from './_generated/api';
+import { Doc } from './_generated/dataModel';
 
-function buildApplicationText(app: any): string {
+function buildApplicationText(app: Doc<'founderApplications'>): string {
 	const parts: string[] = [];
 	if (!app) return '';
 	const c = app.company ?? {};
@@ -30,7 +32,7 @@ function buildApplicationText(app: any): string {
 	parts.push(`\n# Team`);
 	parts.push(
 		`Founders: ${(t.founders ?? [])
-			.map((f: any) => `${f.name} <${f.email}> (${f.designation})`)
+			.map((f) => `${f.name} <${f.email}> (${f.designation})`)
 			.join('; ')}`,
 	);
 	parts.push(`Full-time: ${t.isFullTime}`);
@@ -150,15 +152,139 @@ export const ingestCompanyApplication = action({
 			id: companyId,
 		});
 		if (!app) throw new Error('Application not found');
-		const text = buildApplicationText(app);
-		await companyRag.add(ctx, {
-			namespace: `${companyId}`,
-			key: `founderApplication:${companyId}`,
-			text,
-		});
+
+		// Ingest different sections with domain-specific filters for hybrid RAG approach
+		const sections = [
+			{ domain: 'baseline', text: buildBaselineContext(app) },
+			{
+				domain: 'finance',
+				text: buildSectionText(app, ['company', 'team', 'traction']),
+			},
+			{
+				domain: 'evaluation',
+				text: buildSectionText(app, ['company', 'team', 'product', 'market']),
+			},
+			{
+				domain: 'competitor',
+				text: buildSectionText(app, ['company', 'market']),
+			},
+			{ domain: 'market', text: buildSectionText(app, ['company', 'market']) },
+			{
+				domain: 'technical',
+				text: buildSectionText(app, ['company', 'product']),
+			},
+		];
+
+		// Add each section with domain filtering
+		for (const section of sections) {
+			await companyRag.add(ctx, {
+				namespace: `${companyId}`,
+				key: `founderApplication:${companyId}:${section.domain}`,
+				text: section.text,
+				filterValues: [
+					{ name: 'domain', value: section.domain },
+					{ name: 'contentType', value: 'founderApplication' },
+				],
+			});
+		}
+
 		return { ok: true };
 	},
 });
+
+// Helper function to build section-specific text
+function buildBaselineContext(app: any): string {
+	const parts: string[] = [];
+	if (!app) return '';
+	const c = app.company ?? {};
+	const t = app.team ?? {};
+
+	parts.push(`# Company Overview`);
+	parts.push(`Name: ${c.name}`);
+	parts.push(`Website: ${c.website}`);
+	parts.push(`Location: ${c.location}`);
+	parts.push(`Stage: ${c.stage}`);
+	parts.push(`One-liner: ${c.oneLiner}`);
+	parts.push(`What do you do: ${c.whatDoYouDo}`);
+	parts.push(`Why now: ${c.whyNow}`);
+
+	parts.push(`\n# Team Basics`);
+	parts.push(
+		`Founders: ${(t.founders ?? [])
+			.map((f: any) => `${f.name} (${f.designation})`)
+			.join('; ')}`,
+	);
+	parts.push(`Full-time: ${t.isFullTime}`);
+	parts.push(`How long worked: ${t.howLongWorked}`);
+
+	return parts.filter(Boolean).join('\n');
+}
+
+// Helper function to build section-specific text
+function buildSectionText(app: any, sections: string[]): string {
+	const parts: string[] = [];
+	if (!app) return '';
+
+	const c = app.company ?? {};
+	const t = app.team ?? {};
+	const p = app.product ?? {};
+	const m = app.market ?? {};
+	const tr = app.traction ?? {};
+
+	if (sections.includes('company')) {
+		parts.push(`# Company`);
+		parts.push(`Name: ${c.name}`);
+		parts.push(`Website: ${c.website}`);
+		parts.push(`Location: ${c.location}`);
+		parts.push(`Stage: ${c.stage}`);
+		parts.push(`One-liner: ${c.oneLiner}`);
+		parts.push(`What do you do: ${c.whatDoYouDo}`);
+		parts.push(`Why now: ${c.whyNow}`);
+	}
+
+	if (sections.includes('team')) {
+		parts.push(`\n# Team`);
+		parts.push(
+			`Founders: ${(t.founders ?? [])
+				.map((f: any) => `${f.name} <${f.email}> (${f.designation})`)
+				.join('; ')}`,
+		);
+		parts.push(`Full-time: ${t.isFullTime}`);
+		parts.push(`How long worked: ${t.howLongWorked}`);
+		parts.push(`Relevant experience: ${t.relevantExperience}`);
+	}
+
+	if (sections.includes('product')) {
+		parts.push(`\n# Product`);
+		parts.push(`Description: ${p.description}`);
+		parts.push(`Demo URL: ${p.demoUrl}`);
+		parts.push(`Defensibility: ${p.defensibility}`);
+	}
+
+	if (sections.includes('market')) {
+		parts.push(`\n# Market`);
+		parts.push(`Customer: ${m.customer}`);
+		parts.push(`Competitors: ${m.competitors}`);
+		parts.push(`Differentiation: ${m.differentiation}`);
+		parts.push(`GTM: ${m.gtm}`);
+		parts.push(`TAM: ${m.tam}`);
+		parts.push(`SAM: ${m.sam}`);
+		parts.push(`SOM: ${m.som}`);
+	}
+
+	if (sections.includes('traction')) {
+		parts.push(`\n# Traction`);
+		parts.push(`Launched: ${tr.isLaunched}`);
+		parts.push(`Launch date: ${tr.launchDate}`);
+		parts.push(`MRR: ${tr.mrr}`);
+		parts.push(`Growth: ${tr.growth}`);
+		parts.push(`Active users: ${tr.activeUsersCount}`);
+		parts.push(`Pilots: ${tr.pilots}`);
+		parts.push(`KPIs: ${tr.kpis}`);
+	}
+
+	return parts.filter(Boolean).join('\n');
+}
 
 export const runAnalysis = internalAction({
 	args: { companyId: v.id('founderApplications'), jobId: v.id('analysisJobs') },
@@ -261,7 +387,10 @@ Rules:
 CONTEXT:\n\n${contextText}`;
 
 			const result = await thread.generateObject(
-				{ prompt, schema: snapshotSchema },
+				{
+					prompt,
+					schema: snapshotSchema,
+				},
 				{
 					storageOptions: { saveMessages: 'all' },
 				},

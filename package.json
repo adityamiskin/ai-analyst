@@ -9,9 +9,9 @@
 		"start": "next start"
 	},
 	"dependencies": {
-		"@ai-sdk/openai": "^2.0.30",
+		"@ai-sdk/google": "^2.0.14",
+		"@ai-sdk/openai": "^2.0.32",
 		"@convex-dev/agent": "^0.2.7",
-		"@convex-dev/mastra": "0.0.1-alpha.4",
 		"@convex-dev/rag": "^0.5.3",
 		"@hookform/resolvers": "^3.10.0",
 		"@radix-ui/react-accordion": "1.2.2",
@@ -61,10 +61,12 @@
 		"react-dom": "^18",
 		"react-hook-form": "^7.60.0",
 		"react-resizable-panels": "^2.1.7",
+		"react-syntax-highlighter": "^15.6.6",
 		"recharts": "latest",
 		"sonner": "^1.7.4",
 		"tailwind-merge": "^2.5.5",
 		"tailwindcss-animate": "^1.0.7",
+		"use-stick-to-bottom": "^1.1.1",
 		"vaul": "^0.9.9",
 		"zod": "3.25.76"
 	},
