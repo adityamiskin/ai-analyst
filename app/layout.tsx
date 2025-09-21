@@ -7,9 +7,9 @@ import { ConvexClientProvider } from '@/components/convex-provider';
 import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
-	title: 'v0 App',
-	description: 'Created with v0',
-	generator: 'v0.app',
+	title: 'Venture Vision',
+	description:
+		'Venture Vision is a platform for VC firms to analyze startup companies using AI.',
 };
 
 export default function RootLayout({
