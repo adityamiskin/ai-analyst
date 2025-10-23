@@ -83,7 +83,7 @@ export const createCompanyAnalysisAgent = (companyId: string) =>
 	new Agent(components.agent, {
 		name: 'CompanyAnalysisAgent',
 		instructions: COMPANY_ANALYSIS_AGENT_INSTRUCTIONS,
-		languageModel: openai.responses('gpt-5-mini'),
+		languageModel: openai.responses('gpt-4.1'),
 		stopWhen: stepCountIs(5),
 		tools: {
 			getDomainContext: createDomainContextTool(companyId),
@@ -94,7 +94,7 @@ export const createFinanceAgent = (companyId: string) =>
 	new Agent(components.agent, {
 		name: 'FinanceAgent',
 		instructions: FINANCE_AGENT_INSTRUCTIONS,
-		languageModel: openai.responses('gpt-5-mini'),
+		languageModel: openai.responses('gpt-4.1'),
 		stopWhen: stepCountIs(5),
 		tools: {
 			web_search: openai.tools.webSearch({}),
@@ -106,7 +106,7 @@ export const createEvaluationAgent = (companyId: string) =>
 	new Agent(components.agent, {
 		name: 'EvaluationAgent',
 		instructions: EVALUATION_AGENT_INSTRUCTIONS,
-		languageModel: openai.responses('gpt-5-mini'),
+		languageModel: openai.responses('gpt-4.1'),
 		stopWhen: stepCountIs(5),
 		tools: {
 			web_search: openai.tools.webSearch({}),
@@ -118,7 +118,7 @@ export const createCompetitorAgent = (companyId: string) =>
 	new Agent(components.agent, {
 		name: 'CompetitorAgent',
 		instructions: COMPETITOR_AGENT_INSTRUCTIONS,
-		languageModel: openai.responses('gpt-5-mini'),
+		languageModel: openai.responses('gpt-4.1'),
 		stopWhen: stepCountIs(5),
 		tools: {
 			web_search: openai.tools.webSearch({}),
@@ -130,7 +130,7 @@ export const createMarketAgent = (companyId: string) =>
 	new Agent(components.agent, {
 		name: 'MarketAgent',
 		instructions: MARKET_AGENT_INSTRUCTIONS,
-		languageModel: openai.responses('gpt-5-mini'),
+		languageModel: openai.responses('gpt-4.1'),
 		stopWhen: stepCountIs(5),
 		tools: {
 			web_search: openai.tools.webSearch({}),
@@ -142,7 +142,7 @@ export const createTechnicalAgent = (companyId: string) =>
 	new Agent(components.agent, {
 		name: 'TechnicalAgent',
 		instructions: TECHNICAL_AGENT_INSTRUCTIONS,
-		languageModel: openai.responses('gpt-5-mini'),
+		languageModel: openai.responses('gpt-4.1'),
 		stopWhen: stepCountIs(5),
 		tools: {
 			web_search: openai.tools.webSearch({}),
@@ -154,19 +154,10 @@ export const createOrchestrationAgent = (companyId: string) =>
 	new Agent(components.agent, {
 		name: 'OrchestrationAgent',
 		instructions: ORCHESTRATION_AGENT_INSTRUCTIONS,
-		languageModel: openai.responses('gpt-5-mini'),
+		languageModel: openai.responses('gpt-4.1'),
 		stopWhen: stepCountIs(2),
 		tools: {
 			web_search: openai.tools.webSearch({}),
 			getDomainContext: createDomainContextTool(companyId),
 		},
 	});
-
-// Keep the old exports for backward compatibility (they won't work with the new tool structure)
-export const companyAnalysisAgent = createCompanyAnalysisAgent('legacy');
-export const financeAgent = createFinanceAgent('legacy');
-export const evaluationAgent = createEvaluationAgent('legacy');
-export const competitorAgent = createCompetitorAgent('legacy');
-export const marketAgent = createMarketAgent('legacy');
-export const technicalAgent = createTechnicalAgent('legacy');
-export const orchestrationAgent = createOrchestrationAgent('legacy');

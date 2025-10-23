@@ -143,6 +143,7 @@ export default defineSchema({
 		primaryEmail: v.string(),
 		createdAt: v.number(),
 		updatedAt: v.number(),
+		pinned: v.optional(v.boolean()),
 	})
 		.index('by_primary_email', ['primaryEmail'])
 		.index('by_primary_email_createdAt', ['primaryEmail', 'createdAt']),

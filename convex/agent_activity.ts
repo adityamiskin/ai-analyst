@@ -75,19 +75,25 @@ export const extractAgentActivity = internalAction({
 		agentId: v.string(),
 		agentName: v.string(),
 		threadId: v.string(),
+		skipStartLog: v.optional(v.boolean()),
 	},
-	handler: async (ctx, { companyId, jobId, agentId, agentName, threadId }) => {
+	handler: async (
+		ctx,
+		{ companyId, jobId, agentId, agentName, threadId, skipStartLog },
+	) => {
 		try {
-			// Log agent start
-			await ctx.runMutation(internal.agent_activity.logAgentActivity, {
-				companyId,
-				jobId,
-				agentId,
-				agentName,
-				threadId,
-				activityType: 'agent_start',
-				status: 'running',
-			});
+			// Log agent start (unless already logged)
+			if (!skipStartLog) {
+				await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+					companyId,
+					jobId,
+					agentId,
+					agentName,
+					threadId,
+					activityType: 'agent_start',
+					status: 'running',
+				});
+			}
 
 			// Fetch all messages from the thread
 			const messagesResult = await listMessages(ctx, components.agent, {
@@ -95,34 +101,24 @@ export const extractAgentActivity = internalAction({
 				paginationOpts: { cursor: null, numItems: 100 },
 			});
 
-			// Save all messages to our database
-			for (const message of messagesResult.page) {
-				// Extract role from the message structure
-				let role = 'unknown';
-				if ('role' in message && typeof message.role === 'string') {
-					role = message.role;
-				} else if ('tool' in message && message.tool) {
-					role = 'tool';
-				} else if ('assistant' in message && message.assistant) {
-					role = 'assistant';
-				} else if ('user' in message && message.user) {
-					role = 'user';
-				}
-
-				await ctx.runMutation(internal.agent_activity.saveAgentMessage, {
-					companyId,
-					jobId,
-					agentId,
-					agentName,
-					threadId,
-					messageId: message.id || `msg_${Date.now()}_${Math.random()}`,
-					role,
-					content: message,
-					metadata: {
-						originalMessage: message,
-					},
-				});
-			}
+			// Save all messages as one consolidated message per agent
+			await ctx.runMutation(internal.agent_activity.saveAgentMessage, {
+				companyId,
+				jobId,
+				agentId,
+				agentName,
+				threadId,
+				messageId: `consolidated_${agentId}_${threadId}_${Date.now()}`,
+				role: 'agent',
+				content: messagesResult.page, // Save the entire array of messages
+				metadata: {
+					messageCount: messagesResult.page.length,
+					consolidated: true,
+					firstMessageId: messagesResult.page[0]?.id,
+					lastMessageId:
+						messagesResult.page[messagesResult.page.length - 1]?.id,
+				},
+			});
 
 			// Extract tool calls from saved messages
 			await ctx.runAction(
@@ -162,7 +158,7 @@ export const extractAgentActivity = internalAction({
 	},
 });
 
-// Extract tool calls from saved messages
+// Extract tool calls from thread messages directly
 export const extractToolCallsFromMessages = internalAction({
 	args: {
 		companyId: v.id('founderApplications'),
@@ -172,86 +168,112 @@ export const extractToolCallsFromMessages = internalAction({
 		threadId: v.string(),
 	},
 	handler: async (ctx, { companyId, jobId, agentId, agentName, threadId }) => {
-		// Get all messages for this agent
-		const messages = await ctx.runQuery(api.agent_activity.getAgentMessages, {
-			companyId,
-			jobId,
-			agentId,
-		});
+		try {
+			// Get all messages directly from the thread using listMessages
+			const messagesResult = await listMessages(ctx, components.agent, {
+				threadId,
+				paginationOpts: { cursor: null, numItems: 100 },
+			});
 
-		// Process messages to extract tool calls and results
-		for (const message of messages) {
-			const content = message.content;
+			console.log(
+				`Extracting tool calls for agent ${agentId}, found ${messagesResult.page.length} messages`,
+			);
 
-			// Check if this is an assistant message with tool calls
-			if (
-				message.role === 'assistant' &&
-				content &&
-				typeof content === 'object' &&
-				content.content &&
-				Array.isArray(content.content)
-			) {
-				// Look for tool calls and results in the content array
-				for (const item of content.content) {
-					if (item.type === 'tool-call') {
-						await ctx.runMutation(internal.agent_activity.logAgentActivity, {
-							companyId,
-							jobId,
-							agentId,
-							agentName,
-							threadId,
-							activityType: 'tool_call',
-							toolName: item.toolName,
-							toolInput: item.args,
-							status: 'completed',
-							metadata: {
-								messageId: message.messageId,
-								toolCallId: item.toolCallId,
-							},
-						});
-					} else if (item.type === 'tool-result') {
-						await ctx.runMutation(internal.agent_activity.logAgentActivity, {
-							companyId,
-							jobId,
-							agentId,
-							agentName,
-							threadId,
-							activityType: 'tool_result',
-							toolName: item.toolName,
-							toolOutput: item.output,
-							status: 'completed',
-							metadata: {
-								messageId: message.messageId,
-								toolCallId: item.toolCallId,
-							},
-						});
+			// Process each message to extract tool calls and results
+			for (const message of messagesResult.page) {
+				const messageContent = message.message;
+				console.log(
+					`Processing message ${message._id}, role: ${
+						messageContent?.role
+					}, content type: ${typeof messageContent?.content}`,
+				);
+
+				// Check if this is an assistant message with tool calls
+				if (
+					messageContent &&
+					typeof messageContent === 'object' &&
+					'content' in messageContent &&
+					Array.isArray(messageContent.content)
+				) {
+					// Look for tool calls and results in the content array
+					for (const item of messageContent.content) {
+						console.log(
+							`Found content item type: ${item.type}, toolName: ${
+								'toolName' in item ? item.toolName : 'N/A'
+							}`,
+						);
+						if (item.type === 'tool-call') {
+							await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+								companyId,
+								jobId,
+								agentId,
+								agentName,
+								threadId,
+								activityType: 'tool_call',
+								toolName: item.toolName,
+								toolInput: item.args,
+								status: 'completed',
+								metadata: {
+									messageId: message._id,
+									toolCallId: item.toolCallId,
+								},
+							});
+						} else if (item.type === 'tool-result') {
+							await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+								companyId,
+								jobId,
+								agentId,
+								agentName,
+								threadId,
+								activityType: 'tool_result',
+								toolName: item.toolName,
+								toolOutput: item.output,
+								status: 'completed',
+								metadata: {
+									messageId: message._id,
+									toolCallId: item.toolCallId,
+								},
+							});
+						}
+					}
+				}
+
+				// Check for tool messages with role "tool"
+				if (
+					messageContent &&
+					typeof messageContent === 'object' &&
+					'role' in messageContent &&
+					messageContent.role === 'tool'
+				) {
+					// Handle tool result messages
+					if (messageContent.content && Array.isArray(messageContent.content)) {
+						for (const item of messageContent.content) {
+							if (item.type === 'tool-result') {
+								await ctx.runMutation(
+									internal.agent_activity.logAgentActivity,
+									{
+										companyId,
+										jobId,
+										agentId,
+										agentName,
+										threadId,
+										activityType: 'tool_result',
+										toolName: item.toolName,
+										toolOutput: item.result || item.output,
+										status: 'completed',
+										metadata: {
+											messageId: message._id,
+											toolCallId: item.toolCallId,
+										},
+									},
+								);
+							}
+						}
 					}
 				}
 			}
-
-			// Check if this is a tool message with results (fallback for different message structure)
-			if (message.role === 'tool' && content && typeof content === 'object') {
-				// Look for tool results in the content
-				if (content.toolResults && Array.isArray(content.toolResults)) {
-					for (const toolResult of content.toolResults) {
-						await ctx.runMutation(internal.agent_activity.logAgentActivity, {
-							companyId,
-							jobId,
-							agentId,
-							agentName,
-							threadId,
-							activityType: 'tool_result',
-							toolName: toolResult.toolName,
-							toolOutput: toolResult.result,
-							status: 'completed',
-							metadata: {
-								messageId: message.messageId,
-								toolCallId: toolResult.toolCallId,
-							},
-						});
-					}
-				}
-			}
+		} catch (error) {
+			console.error('Error extracting tool calls from messages:', error);
 		}
 	},
 });
@@ -322,6 +344,7 @@ export const getAgentsStatus = query({
 			.withIndex('by_companyId_jobId', (q) =>
 				q.eq('companyId', companyId).eq('jobId', jobId),
 			)
+			.order('asc')
 			.collect();
 
 		// Group by agent and determine status

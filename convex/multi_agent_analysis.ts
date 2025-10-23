@@ -18,6 +18,7 @@ import {
 	createOrchestrationAgent,
 } from './ai';
 import { api, internal } from './_generated/api';
+import { groq } from '@ai-sdk/groq';
 
 // Zod schemas for each agent's analysis - made more flexible
 const agentAnalysisSchema = z.object({
@@ -318,33 +319,6 @@ const multiAgentSnapshotSchema = z.object({
 		),
 });
 
-// Helper function to convert generated text to structured object using AI
-async function convertTextToObject(
-	text: string,
-	schema: z.ZodSchema,
-	ctx: any,
-): Promise<any> {
-	try {
-		const result = await generateObject({
-			model: google('gemini-2.5-flash'),
-			prompt: `Convert the following analysis text into a structured object that matches the provided schema.
-
-			Analysis text:
-			${text}`,
-			schema,
-		});
-
-		return result.object;
-	} catch (error) {
-		console.error('Failed to convert text to object:', error);
-		throw new Error(
-			`Failed to convert text to structured object: ${
-				error instanceof Error ? error.message : 'Unknown error'
-			}`,
-		);
-	}
-}
-
 // Build baseline context shared by all agents
 function buildBaselineContext(app: any): string {
 	const parts: string[] = [];
@@ -391,35 +365,45 @@ async function runFinanceAnalysis(
 Company baseline context: ${baselineContext}`;
 
 	try {
+		// Log agent start before execution
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'finance',
+			agentName: 'Financial Analysis Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_start',
+			status: 'running',
+		});
+
 		const result = await thread.generateText(
 			{
 				prompt,
-				experimental_output: Output.object({
-					schema: agentAnalysisSchema,
-				}),
 			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		// Extract agent activity after completion
+		const structuredResult = await thread.generateObject({
+			prompt:
+				result.text +
+				'\n\nGive the summary in proper markdown format without the markdown tags',
+			model: google('gemini-2.5-flash'),
+			schema: agentAnalysisSchema,
+		});
+
+		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
 			companyId,
 			jobId,
 			agentId: 'finance',
 			agentName: 'Financial Analysis Agent',
 			threadId: thread.threadId,
+			skipStartLog: true,
 		});
 
-		// // Convert the generated text to structured object
-		// const structuredResult = await convertTextToObject(
-		// 	result.text,
-		// 	agentAnalysisSchema,
-		// 	ctx,
-		// );
-
-		return result.experimental_output;
+		return structuredResult.object;
 	} catch (error) {
 		console.error('Finance analysis failed:', error);
 
@@ -476,35 +460,45 @@ async function runEvaluationAnalysis(
 Company baseline context: ${baselineContext}`;
 
 	try {
+		// Log agent start before execution
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'evaluation',
+			agentName: 'Investment Evaluation Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_start',
+			status: 'running',
+		});
+
 		const result = await thread.generateText(
 			{
 				prompt,
-				experimental_output: Output.object({
-					schema: agentAnalysisSchema,
-				}),
 			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		// Extract agent activity after completion
+		const structuredResult = await thread.generateObject({
+			prompt:
+				result.text +
+				'\n\nGive the summary in proper markdown format without the markdown tags',
+			model: google('gemini-2.5-flash'),
+			schema: agentAnalysisSchema,
+		});
+
+		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
 			companyId,
 			jobId,
 			agentId: 'evaluation',
 			agentName: 'Investment Evaluation Agent',
 			threadId: thread.threadId,
+			skipStartLog: true,
 		});
 
-		// Convert the generated text to structured object
-		//const structuredResult = await convertTextToObject(
-		//	result.text,
-		// 	agentAnalysisSchema,
-		// 	ctx,
-		// );
-
-		return result.experimental_output;
+		return structuredResult.object;
 	} catch (error) {
 		console.error('Evaluation analysis failed:', error);
 
@@ -561,37 +555,47 @@ async function runCompetitorAnalysis(
 Company baseline context: ${baselineContext}`;
 
 	try {
+		// Log agent start before execution
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'competitor',
+			agentName: 'Competitor Analysis Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_start',
+			status: 'running',
+		});
+
 		const result = await thread.generateText(
 			{
 				prompt,
-				experimental_output: Output.object({
-					schema: agentAnalysisSchema,
-				}),
 			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		// Extract agent activity after completion
+		const structuredResult = await thread.generateObject({
+			prompt:
+				result.text +
+				'\n\nGive the summary in proper markdown format without the markdown tags',
+			model: google('gemini-2.5-flash'),
+			schema: agentAnalysisSchema,
+		});
+
+		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
 			companyId,
 			jobId,
 			agentId: 'competitor',
 			agentName: 'Competitive Analysis Agent',
 			threadId: thread.threadId,
+			skipStartLog: true,
 		});
-
-		// Convert the generated text to structured object
-		// const structuredResult = await convertTextToObject(
-		// 	result.text,
-		// 	agentAnalysisSchema,
-		// 	ctx,
-		// );
 
 		console.log('Competitor analysis completed');
 
-		return result.experimental_output;
+		return structuredResult.object;
 	} catch (error) {
 		console.error('Competitor analysis failed:', error);
 
@@ -648,37 +652,47 @@ async function runMarketAnalysis(
 Company baseline context: ${baselineContext}`;
 
 	try {
+		// Log agent start before execution
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'market',
+			agentName: 'Market Analysis Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_start',
+			status: 'running',
+		});
+
 		const result = await thread.generateText(
 			{
 				prompt,
-				experimental_output: Output.object({
-					schema: agentAnalysisSchema,
-				}),
 			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		// Extract agent activity after completion
+		const structuredResult = await thread.generateObject({
+			prompt:
+				result.text +
+				'\n\nGive the summary in proper markdown format without the markdown tags',
+			model: google('gemini-2.5-flash'),
+			schema: agentAnalysisSchema,
+		});
+
+		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
 			companyId,
 			jobId,
 			agentId: 'market',
 			agentName: 'Market Analysis Agent',
 			threadId: thread.threadId,
+			skipStartLog: true,
 		});
-
-		// Convert the generated text to structured object
-		// const structuredResult = await convertTextToObject(
-		// 	result.text,
-		// 	agentAnalysisSchema,
-		// 	ctx,
-		// );
 
 		console.log('Market analysis completed');
 
-		return result.experimental_output;
+		return structuredResult.object;
 	} catch (error) {
 		console.error('Market analysis failed:', error);
 
@@ -735,37 +749,47 @@ async function runTechnicalAnalysis(
 Company baseline context: ${baselineContext}`;
 
 	try {
+		// Log agent start before execution
+		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+			companyId,
+			jobId,
+			agentId: 'technical',
+			agentName: 'Technical Analysis Agent',
+			threadId: thread.threadId,
+			activityType: 'agent_start',
+			status: 'running',
+		});
+
 		const result = await thread.generateText(
 			{
 				prompt,
-				experimental_output: Output.object({
-					schema: agentAnalysisSchema,
-				}),
 			},
 			{
 				storageOptions: { saveMessages: 'all' },
 			},
 		);
 
-		// Extract agent activity after completion
+		const structuredResult = await thread.generateObject({
+			prompt:
+				result.text +
+				'\n\nGive the summary in proper markdown format without the markdown tags',
+			model: google('gemini-2.5-flash'),
+			schema: agentAnalysisSchema,
+		});
+
+		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
 			companyId,
 			jobId,
 			agentId: 'technical',
 			agentName: 'Technical Analysis Agent',
 			threadId: thread.threadId,
+			skipStartLog: true,
 		});
-
-		// Convert the generated text to structured object
-		// const structuredResult = await convertTextToObject(
-		// 	result.text,
-		// 	agentAnalysisSchema,
-		// 	ctx,
-		// );
 
 		console.log('Technical analysis completed');
 
-		return result.experimental_output;
+		return structuredResult.object;
 	} catch (error) {
 		console.error('Technical analysis failed:', error);
 
@@ -928,28 +952,35 @@ Market: ${marketAnalysis.summary}
 Technical: ${technicalAnalysis.summary}`;
 
 			try {
+				// Log orchestration agent start before execution
+				await ctx.runMutation(internal.agent_activity.logAgentActivity, {
+					companyId,
+					jobId,
+					agentId: 'orchestration',
+					agentName: 'Orchestration Agent',
+					threadId: thread.threadId,
+					activityType: 'agent_start',
+					status: 'running',
+				});
+
 				const orchestrationResult = await thread.generateText(
 					{
 						prompt: orchestrationPrompt,
-						experimental_output: Output.object({
-							schema: multiAgentSnapshotSchema,
-						}),
 					},
 					{
 						storageOptions: { saveMessages: 'all' },
 					},
 				);
 
-				// Convert the generated text to structured object
-				// const snapshot = await convertTextToObject(
-				// orchestrationResult.text,
-				// 	multiAgentSnapshotSchema,
-				// 	ctx,
-				// );
+				const structuredResult = await thread.generateObject({
+					prompt: orchestrationResult.text,
+					model: google('gemini-2.5-flash'),
+					schema: multiAgentSnapshotSchema,
+				});
 
 				// Ensure lastUpdated
-				if (!orchestrationResult.experimental_output.lastUpdated)
-					orchestrationResult.experimental_output.lastUpdated = today;
+				if (!structuredResult.object?.lastUpdated)
+					structuredResult.object.lastUpdated = today;
 
 				// Update job status for saving
 				await ctx.runMutation(internal.multi_agent_analysis.updateJobStatus, {
@@ -961,7 +992,17 @@ Technical: ${technicalAnalysis.summary}`;
 
 				await ctx.runMutation(api.multi_agent_analysis.saveMultiAgentSnapshot, {
 					companyId,
-					snapshot: orchestrationResult.experimental_output,
+					snapshot: structuredResult.object,
+				});
+
+				// Extract orchestration agent activity (skip start log since we already logged it)
+				await ctx.runAction(internal.agent_activity.extractAgentActivity, {
+					companyId,
+					jobId,
+					agentId: 'orchestration',
+					agentName: 'Orchestration Agent',
+					threadId: thread.threadId,
+					skipStartLog: true,
 				});
 
 				// Mark job as completed

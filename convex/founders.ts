@@ -140,6 +140,42 @@ export const listAllApplications = query({
 	handler: async (ctx) => {
 		const applications = await ctx.db.query('founderApplications').collect();
 		applications.sort((a, b) => b.createdAt - a.createdAt);
-		return applications;
+
+		// Only return fields used in the sidebar
+		return applications.map((app) => ({
+			_id: app._id,
+			company: {
+				name: app.company.name,
+				location: app.company.location,
+				oneLiner: app.company.oneLiner,
+				stage: app.company.stage,
+			},
+			team: {
+				founders: app.team.founders,
+			},
+			traction: {
+				mrr: app.traction.mrr,
+			},
+			createdAt: app.createdAt,
+			updatedAt: app.updatedAt,
+			pinned: app.pinned,
+		}));
+	},
+});
+
+export const togglePinCompany = mutation({
+	args: {
+		id: v.id('founderApplications'),
+	},
+	handler: async (ctx, { id }) => {
+		const existing = await ctx.db.get(id);
+		if (!existing) throw new Error('Application not found');
+
+		const newPinnedStatus = !existing.pinned;
+		await ctx.db.patch(id, {
+			pinned: newPinnedStatus,
+			updatedAt: Date.now(),
+		});
+		return newPinnedStatus;
 	},
 });

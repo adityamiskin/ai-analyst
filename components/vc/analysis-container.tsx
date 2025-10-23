@@ -24,6 +24,7 @@ import {
 	CardTitle,
 } from '@/components/ui/card';
 import { useState } from 'react';
+import { Response } from '@/components/ai-elements/response';
 
 // Type definitions using Convex Doc types
 type CompanyAnalysis = Doc<'companyAnalyses'>;
@@ -339,9 +340,9 @@ export default function AnalysisContainer() {
 										</CardDescription>
 									</CardHeader>
 									<CardContent>
-										<p className='text-sm'>
+										<Response className='text-sm'>
 											{multiAgentSnapshot.recommendationReasoning}
-										</p>
+										</Response>
 									</CardContent>
 								</Card>
 
@@ -351,9 +352,9 @@ export default function AnalysisContainer() {
 										<CardTitle>Overall Analysis Summary</CardTitle>
 									</CardHeader>
 									<CardContent>
-										<p className='text-sm'>
+										<Response className='text-sm'>
 											{multiAgentSnapshot.overallSummary}
-										</p>
+										</Response>
 									</CardContent>
 								</Card>
 
@@ -374,9 +375,9 @@ export default function AnalysisContainer() {
 												<CardContent className='space-y-4'>
 													<div>
 														<h4 className='font-medium mb-2'>Summary</h4>
-														<p className='text-sm text-muted-foreground'>
+														<Response className='text-sm text-muted-foreground'>
 															{agentAnalysis.summary}
-														</p>
+														</Response>
 													</div>
 
 													{agentAnalysis.keyFindings.length > 0 && (

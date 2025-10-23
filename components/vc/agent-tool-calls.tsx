@@ -116,7 +116,7 @@ export function AgentToolCalls({
 	}
 
 	return (
-		<div className='space-y-3'>
+		<div className='w-full space-y-3'>
 			<div className='flex items-center justify-between'>
 				<h4 className='text-sm font-medium'>Tool Calls ({toolCalls.length})</h4>
 				<Badge variant='outline' className='text-xs'>
@@ -124,76 +124,88 @@ export function AgentToolCalls({
 				</Badge>
 			</div>
 
-			<div className='space-y-2'>
+			<div className='w-full space-y-2'>
 				{toolCalls.map((toolCall, index) => {
 					const toolCallId = toolCall._id;
 					const isExpanded = expandedTools.has(toolCallId);
 					const status = getToolStatus(toolCall);
 
 					return (
-						<Tool
-							key={toolCallId}
-							open={isExpanded}
-							onOpenChange={() => toggleToolExpansion(toolCallId)}>
-							<ToolHeader
-								type={toolCall.toolName || 'Unknown Tool'}
-								state={status as any}
-							/>
-							<ToolContent>
-								<div className='space-y-4'>
-									{/* Tool Input */}
-									<ToolInput input={toolCall.toolInput || {}} />
-
-									{/* Tool Output */}
-									{toolCall.result && (
-										<ToolOutput
-											output={
-												toolCall.result.toolOutput ||
-												toolCall.result.errorMessage
-											}
-											errorText={
-												toolCall.result.status === 'error'
-													? toolCall.result.errorMessage
-													: undefined
-											}
-										/>
-									)}
-
-									{/* Execution Details */}
-									<div className='grid grid-cols-2 gap-4 text-xs text-muted-foreground'>
-										<div>
-											<span className='font-medium'>Started:</span>{' '}
-											{new Date(toolCall.timestamp).toLocaleTimeString()}
+						<div key={toolCallId} className='w-full'>
+							<Tool
+								className='w-full'
+								open={isExpanded}
+								onOpenChange={() => toggleToolExpansion(toolCallId)}>
+								<ToolHeader
+									type={`tool-${toolCall.toolName || 'unknown'}` as any}
+									state={status as any}
+								/>
+								<ToolContent className='w-full'>
+									<div className='w-full space-y-4'>
+										{/* Tool Input */}
+										<div className='w-full'>
+											<ToolInput input={toolCall.toolInput || {}} />
 										</div>
-										{toolCall.executionTimeMs && (
-											<div>
-												<span className='font-medium'>Duration:</span>{' '}
-												{toolCall.executionTimeMs}ms
+
+										{/* Tool Output */}
+										{toolCall.result && (
+											<div className='w-full'>
+												<ToolOutput
+													output={
+														toolCall.result.toolOutput ||
+														toolCall.result.errorMessage
+													}
+													errorText={
+														toolCall.result.status === 'error'
+															? toolCall.result.errorMessage
+															: undefined
+													}
+												/>
+											</div>
+										)}
+
+										{/* Execution Details */}
+										<div className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-muted-foreground w-full'>
+											<div className='min-w-0'>
+												<span className='font-medium'>Started:</span>{' '}
+												<span className='break-words'>
+													{new Date(toolCall.timestamp).toLocaleTimeString()}
+												</span>
+											</div>
+											{toolCall.executionTimeMs && (
+												<div className='min-w-0'>
+													<span className='font-medium'>Duration:</span>{' '}
+													{toolCall.executionTimeMs}ms
+												</div>
+											)}
+										</div>
+
+										{/* Tool Metadata */}
+										{toolCall.metadata && (
+											<div className='text-xs text-muted-foreground w-full'>
+												<Separator className='my-2' />
+												<div className='space-y-1'>
+													<div className='min-w-0'>
+														<span className='font-medium'>Message ID:</span>{' '}
+														<span className='break-all'>
+															{toolCall.metadata.messageId}
+														</span>
+													</div>
+													{toolCall.metadata.toolCallId && (
+														<div className='min-w-0'>
+															<span className='font-medium'>Tool Call ID:</span>{' '}
+															<span className='break-all'>
+																{toolCall.metadata.toolCallId}
+															</span>
+														</div>
+													)}
+												</div>
 											</div>
 										)}
 									</div>
-
-									{/* Tool Metadata */}
-									{toolCall.metadata && (
-										<div className='text-xs text-muted-foreground'>
-											<Separator className='my-2' />
-											<div className='space-y-1'>
-												<div>
-													<span className='font-medium'>Message ID:</span>{' '}
-													{toolCall.metadata.messageId}
-												</div>
-												{toolCall.metadata.toolCallId && (
-													<div>
-														<span className='font-medium'>Tool Call ID:</span>{' '}
-														{toolCall.metadata.toolCallId}
-													</div>
-												)}
-											</div>
-										</div>
-									)}
-								</div>
-							</ToolContent>
-						</Tool>
+								</ToolContent>
+							</Tool>
+						</div>
 					);
 				})}
 			</div>

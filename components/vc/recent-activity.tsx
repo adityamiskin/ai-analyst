@@ -10,19 +10,14 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
-	Activity,
-	Clock,
-	CheckCircle,
-	XCircle,
-	AlertCircle,
-	Wrench,
-	Search,
-	Code,
-	Database,
-	Globe,
-	Play,
-	Square,
-} from 'lucide-react';
+	Tool,
+	ToolHeader,
+	ToolContent,
+	ToolInput,
+	ToolOutput,
+} from '@/components/ai-elements/tool';
+import { Activity, CheckCircle, XCircle, Wrench, Play } from 'lucide-react';
+import React from 'react';
 
 interface ActivityItem {
 	_id: string;
@@ -48,14 +43,12 @@ interface RecentActivityProps {
 	recentActivity: ActivityItem[];
 	getToolIcon: (toolName: string) => React.ReactNode;
 	getAgentIcon: (agentId: string) => string;
-	showAll?: boolean;
 }
 
 export function RecentActivity({
 	recentActivity,
 	getToolIcon,
 	getAgentIcon,
-	showAll = false,
 }: RecentActivityProps) {
 	const getActivityIcon = (activityType: string) => {
 		switch (activityType) {
@@ -108,27 +101,68 @@ export function RecentActivity({
 		}
 	};
 
-	const formatToolInput = (input: any) => {
-		if (!input) return 'No input';
-		if (typeof input === 'string') return input;
-		if (typeof input === 'object') {
-			return JSON.stringify(input, null, 2);
-		}
-		return String(input);
-	};
+	// Group tool calls with their results for combined display
+	const processedActivities = React.useMemo(() => {
+		const activities = recentActivity;
+		const result: Array<
+			| ActivityItem
+			| {
+					type: 'tool_combined';
+					toolCall: ActivityItem;
+					toolResult?: ActivityItem;
+			  }
+		> = [];
 
-	const formatToolOutput = (output: any) => {
-		if (!output) return 'No output';
-		if (typeof output === 'string') return output;
-		if (typeof output === 'object') {
-			return JSON.stringify(output, null, 2);
-		}
-		return String(output);
-	};
+		// Create a map of tool results by toolCallId
+		const toolResultsMap = new Map<string, ActivityItem>();
+		const processedToolCallIds = new Set<string>();
 
-	const displayActivity = showAll
-		? recentActivity
-		: recentActivity.slice(0, 10);
+		// First pass: collect tool results
+		for (const activity of activities) {
+			if (
+				activity.activityType === 'tool_result' &&
+				activity.metadata?.toolCallId
+			) {
+				toolResultsMap.set(activity.metadata.toolCallId, activity);
+			}
+		}
+
+		// Second pass: process activities
+		for (const activity of activities) {
+			if (
+				activity.activityType === 'tool_call' &&
+				activity.metadata?.toolCallId
+			) {
+				const toolCallId = activity.metadata.toolCallId;
+				if (!processedToolCallIds.has(toolCallId)) {
+					const toolResult = toolResultsMap.get(toolCallId);
+					result.push({
+						type: 'tool_combined',
+						toolCall: activity,
+						toolResult,
+					});
+					processedToolCallIds.add(toolCallId);
+				}
+			} else if (
+				activity.activityType !== 'tool_result' ||
+				!activity.metadata?.toolCallId ||
+				!toolResultsMap.has(activity.metadata.toolCallId)
+			) {
+				result.push(activity);
+			}
+		}
+
+		return result;
+	}, [recentActivity]);
+
+	const getToolStatus = (toolCall: ActivityItem, toolResult?: ActivityItem) => {
+		if (toolResult) {
+			return toolResult.status === 'error'
+				? 'output-error'
+				: 'output-available';
+		}
+		return 'input-available';
+	};
 
 	return (
 		<Card>
@@ -136,9 +170,9 @@ export function RecentActivity({
 				<CardTitle className='flex items-center gap-2'>
 					<Activity className='h-5 w-5' />
 					Recent Activity
-					{!showAll && recentActivity.length > 10 && (
+					{recentActivity.length > 0 && (
 						<Badge variant='outline' className='text-xs'>
-							+{recentActivity.length - 10} more
+							{recentActivity.length} activities
 						</Badge>
 					)}
 				</CardTitle>
@@ -148,85 +182,124 @@ export function RecentActivity({
 			</CardHeader>
 			<CardContent>
 				<div className='space-y-3'>
-					{displayActivity.length === 0 ? (
+					{processedActivities.length === 0 ? (
 						<div className='text-sm text-muted-foreground text-center py-4'>
 							No recent activity
 						</div>
 					) : (
-						displayActivity.map((activity, index) => (
-							<div key={activity._id}>
-								<div className='flex items-start gap-3 p-3 rounded-lg border bg-card'>
-									<div className='flex-shrink-0 mt-0.5'>
-										{getActivityIcon(activity.activityType)}
-									</div>
-									<div className='flex-1 min-w-0'>
-										<div className='flex items-center gap-2 mb-1'>
-											<span className='text-lg'>
-												{getAgentIcon(activity.agentId)}
-											</span>
-											<span className='text-sm font-medium'>
-												{activity.agentName}
-											</span>
-											<Badge
-												className={`text-xs ${getActivityColor(
-													activity.activityType,
-												)}`}
-												variant='outline'>
-												{getActivityLabel(activity.activityType)}
-											</Badge>
-											{activity.toolName && (
-												<div className='flex items-center gap-1 text-xs text-muted-foreground'>
-													{getToolIcon(activity.toolName)}
-													<span>{activity.toolName}</span>
-												</div>
-											)}
-										</div>
+						processedActivities.map((activity, index) => {
+							// Handle combined tool calls
+							if ('type' in activity && activity.type === 'tool_combined') {
+								const { toolCall, toolResult } = activity;
+								const status = getToolStatus(toolCall, toolResult);
 
-										<div className='text-xs text-muted-foreground mb-2'>
-											{new Date(activity.timestamp).toLocaleString()}
-										</div>
-
-										{/* Tool-specific details */}
-										{activity.activityType === 'tool_call' &&
-											activity.toolInput && (
-												<div className='text-xs bg-muted p-2 rounded'>
-													<div className='font-medium mb-1'>Input:</div>
-													<pre className='whitespace-pre-wrap break-words'>
-														{formatToolInput(activity.toolInput)}
-													</pre>
-												</div>
-											)}
-
-										{activity.activityType === 'tool_result' &&
-											activity.toolOutput && (
-												<div className='text-xs bg-muted p-2 rounded'>
-													<div className='font-medium mb-1'>Output:</div>
-													<pre className='whitespace-pre-wrap break-words'>
-														{formatToolOutput(activity.toolOutput)}
-													</pre>
-												</div>
-											)}
-
-										{activity.activityType === 'agent_error' &&
-											activity.errorMessage && (
-												<div className='text-xs bg-red-50 text-red-700 p-2 rounded'>
-													<div className='font-medium mb-1'>Error:</div>
-													{activity.errorMessage}
-												</div>
-											)}
-
-										{activity.executionTimeMs && (
-											<div className='text-xs text-muted-foreground mt-2'>
-												Execution time: {activity.executionTimeMs}ms
+								return (
+									<div key={toolCall._id}>
+										<div className='flex items-start gap-3 p-3 rounded-lg border bg-card'>
+											<div className='flex-shrink-0 mt-0.5'>
+												<Wrench className='h-4 w-4 text-orange-600' />
 											</div>
+											<div className='w-full'>
+												<div className='flex items-center gap-2 mb-1'>
+													<span className='text-lg'>
+														{getAgentIcon(toolCall.agentId)}
+													</span>
+													<span className='text-sm font-medium'>
+														{toolCall.agentName}
+													</span>
+													<Badge
+														className='text-xs bg-orange-100 text-orange-800 border-orange-200'
+														variant='outline'>
+														Tool Call
+													</Badge>
+													{toolCall.toolName && (
+														<div className='flex items-center gap-1 text-xs text-muted-foreground'>
+															{getToolIcon(toolCall.toolName)}
+															<span>{toolCall.toolName}</span>
+														</div>
+													)}
+												</div>
+
+												<div className='text-xs text-muted-foreground mb-2'>
+													{new Date(toolCall.timestamp).toLocaleString()}
+												</div>
+
+												<div className='w-full'>
+													<Tool defaultOpen={false} className='w-full'>
+														<ToolHeader
+															type={`tool-${toolCall.toolName || 'unknown'}`}
+															state={status as any}
+															className='w-full'
+														/>
+														<ToolContent>
+															<ToolInput input={toolCall.toolInput || {}} />
+
+															{toolResult && (
+																<ToolOutput
+																	output={toolResult.toolOutput}
+																	errorText={
+																		toolResult.status === 'error'
+																			? toolResult.errorMessage ||
+																			  'Tool execution failed'
+																			: undefined
+																	}
+																/>
+															)}
+														</ToolContent>
+													</Tool>
+												</div>
+											</div>
+										</div>
+										{index < processedActivities.length - 1 && (
+											<Separator className='my-2' />
 										)}
 									</div>
+								);
+							}
+
+							const regularActivity = activity as ActivityItem;
+							return (
+								<div key={regularActivity._id}>
+									<div className='flex items-start gap-3 p-3 rounded-lg border bg-card'>
+										<div className='flex-1 min-w-0'>
+											<div className='flex items-center gap-2 mb-1'>
+												<span className='text-lg'>
+													{getAgentIcon(regularActivity.agentId)}
+												</span>
+												<span className='text-sm font-medium'>
+													{regularActivity.agentName}
+												</span>
+												<Badge
+													className={`text-xs ${getActivityColor(
+														regularActivity.activityType,
+													)}`}
+													variant='outline'>
+													{getActivityLabel(regularActivity.activityType)}
+												</Badge>
+											</div>
+
+											{/* Agent error details */}
+											{regularActivity.activityType === 'agent_error' &&
+												regularActivity.errorMessage && (
+													<div className='text-xs bg-red-50 text-red-700 p-2 rounded'>
+														<div className='font-medium mb-1'>Error:</div>
+														{regularActivity.errorMessage}
+													</div>
+												)}
+
+											{regularActivity.executionTimeMs && (
+												<div className='text-xs text-muted-foreground mt-2'>
+													Execution time: {regularActivity.executionTimeMs}ms
+												</div>
+											)}
+										</div>
+									</div>
+									{index < processedActivities.length - 1 && (
+										<Separator className='my-2' />
+									)}
 								</div>
-								{index < displayActivity.length - 1 && (
-									<Separator className='my-2' />
-								)}
-							</div>
-						))
+							);
+						})
 					)}
 				</div>
 			</CardContent>

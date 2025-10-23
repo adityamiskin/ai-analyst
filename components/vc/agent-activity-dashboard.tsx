@@ -49,7 +49,6 @@ export default function AgentActivityDashboard({
 	const recentActivity = useQuery(api.agent_activity.getRecentActivity, {
 		companyId,
 		jobId,
-		limit: 20,
 	});
 
 	const getStatusIcon = (status: string) => {
@@ -147,10 +146,9 @@ export default function AgentActivityDashboard({
 
 			{/* Main Content Tabs */}
 			<Tabs defaultValue='overview' className='w-full'>
-				<TabsList className='grid w-full grid-cols-3'>
+				<TabsList className='grid w-full grid-cols-2'>
 					<TabsTrigger value='overview'>Overview</TabsTrigger>
 					<TabsTrigger value='agents'>Individual Agents</TabsTrigger>
-					<TabsTrigger value='activity'>Recent Activity</TabsTrigger>
 				</TabsList>
 
 				<TabsContent value='overview' className='mt-6'>
@@ -241,27 +239,27 @@ export default function AgentActivityDashboard({
 				</TabsContent>
 
 				<TabsContent value='agents' className='mt-6'>
-					<div className='space-y-4'>
+					<div className='grid gap-4'>
 						{agentsStatus.map((agent) => (
-							<Card key={agent.agentId}>
-								<CardHeader>
-									<div className='flex items-center justify-between'>
-										<div className='flex items-center gap-3'>
-											<span className='text-2xl'>
+							<Card key={agent.agentId} className='w-full'>
+								<CardHeader className='pb-3'>
+									<div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+										<div className='flex items-center gap-3 min-w-0 flex-1'>
+											<span className='text-2xl flex-shrink-0'>
 												{getAgentIcon(agent.agentId)}
 											</span>
-											<div>
-												<CardTitle className='text-lg'>
+											<div className='min-w-0 flex-1'>
+												<CardTitle className='text-lg truncate'>
 													{agent.agentName}
 												</CardTitle>
-												<CardDescription>
+												<CardDescription className='text-sm'>
 													{agent.toolCalls} tool calls • {agent.toolResults}{' '}
 													results
 													{agent.errors > 0 && ` • ${agent.errors} errors`}
 												</CardDescription>
 											</div>
 										</div>
-										<div className='flex items-center gap-2'>
+										<div className='flex items-center gap-2 flex-shrink-0'>
 											{getStatusIcon(agent.status)}
 											<Badge className={getStatusColor(agent.status)}>
 												{agent.status}
@@ -269,25 +267,18 @@ export default function AgentActivityDashboard({
 										</div>
 									</div>
 								</CardHeader>
-								<CardContent>
-									<AgentToolCalls
-										companyId={companyId}
-										jobId={jobId}
-										agentId={agent.agentId}
-									/>
+								<CardContent className='pt-0'>
+									<div className='w-full overflow-hidden'>
+										<AgentToolCalls
+											companyId={companyId}
+											jobId={jobId}
+											agentId={agent.agentId}
+										/>
+									</div>
 								</CardContent>
 							</Card>
 						))}
 					</div>
-				</TabsContent>
-
-				<TabsContent value='activity' className='mt-6'>
-					<RecentActivity
-						recentActivity={recentActivity}
-						getToolIcon={getToolIcon}
-						getAgentIcon={getAgentIcon}
-						showAll={true}
-					/>
 				</TabsContent>
 			</Tabs>
 		</div>

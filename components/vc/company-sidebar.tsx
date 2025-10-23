@@ -28,44 +28,54 @@ import {
 	AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import {
-	Search,
-	DollarSign,
-	Calendar,
-	X,
-	Home,
-	Trash2,
-	Pin,
-	PinOff,
-} from 'lucide-react';
+import { Search, Calendar, X, Home, Trash2, Pin, PinOff } from 'lucide-react';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import { Doc, Id } from '@/convex/_generated/dataModel';
 import Link from 'next/link';
 
-type FounderApplication = Doc<'founderApplications'>;
+type SidebarApplication = {
+	_id: Id<'founderApplications'>;
+	company: {
+		name: string;
+		location: string;
+		oneLiner: string;
+		stage: string;
+	};
+	team: {
+		founders: Array<{
+			name: string;
+			email: string;
+			designation: string;
+		}>;
+	};
+	traction: {
+		mrr: string;
+	};
+	createdAt: number;
+	updatedAt: number;
+	pinned?: boolean;
+};
 
 export function CompanySidebar() {
 	const params = useParams<{ id?: string }>();
 	const router = useRouter();
 	const currentCompanyId = params?.id;
 	const [searchQuery, setSearchQuery] = useState('');
-	const [pinnedCompanies, setPinnedCompanies] = useState<
-		Set<Id<'founderApplications'>>
-	>(new Set());
 
 	const applications = useQuery(api.founders.listAllApplications);
 	const deleteApplication = useMutation(api.founders.deleteApplication);
+	const togglePinCompany = useMutation(api.founders.togglePinCompany);
 
 	const { pinnedCompanies: pinnedApps, unpinnedCompanies: unpinnedApps } =
 		useMemo(() => {
 			const list = applications ?? [];
-			const pinned: FounderApplication[] = [];
-			const unpinned: FounderApplication[] = [];
+			const pinned: SidebarApplication[] = [];
+			const unpinned: SidebarApplication[] = [];
 
 			// Separate pinned and unpinned companies
-			list.forEach((app: FounderApplication) => {
-				if (pinnedCompanies.has(app._id)) {
+			list.forEach((app: SidebarApplication) => {
+				if (app.pinned) {
 					pinned.push(app);
 				} else {
 					unpinned.push(app);
@@ -75,8 +85,8 @@ export function CompanySidebar() {
 			// Apply search filter if there's a query
 			if (searchQuery.trim()) {
 				const query = searchQuery.toLowerCase();
-				const filterApps = (apps: FounderApplication[]) =>
-					apps.filter((app: FounderApplication) => {
+				const filterApps = (apps: SidebarApplication[]) =>
+					apps.filter((app: SidebarApplication) => {
 						const companyName = app.company?.name?.toLowerCase?.() ?? '';
 						const stage = app.company?.stage?.toLowerCase?.() ?? '';
 						const oneLiner = app.company?.oneLiner?.toLowerCase?.() ?? '';
@@ -103,22 +113,18 @@ export function CompanySidebar() {
 				pinnedCompanies: pinned,
 				unpinnedCompanies: unpinned,
 			};
-		}, [applications, searchQuery, pinnedCompanies]);
+		}, [applications, searchQuery]);
 
 	const clearSearch = () => {
 		setSearchQuery('');
 	};
 
-	const togglePin = (companyId: Id<'founderApplications'>) => {
-		setPinnedCompanies((prev) => {
-			const newSet = new Set(prev);
-			if (newSet.has(companyId)) {
-				newSet.delete(companyId);
-			} else {
-				newSet.add(companyId);
-			}
-			return newSet;
-		});
+	const togglePin = async (companyId: Id<'founderApplications'>) => {
+		try {
+			await togglePinCompany({ id: companyId });
+		} catch (error) {
+			console.error('Failed to toggle pin status:', error);
+		}
 	};
 
 	const handleDeleteCompany = async (
@@ -136,14 +142,18 @@ export function CompanySidebar() {
 		}
 	};
 
-	const renderCompanyItem = (app: FounderApplication) => (
+	const renderCompanyItem = (app: SidebarApplication) => (
 		<SidebarMenuItem key={app._id}>
 			<SidebarMenuButton
 				asChild
 				variant='outline'
 				isActive={app._id === currentCompanyId}
 				className='w-full p-4 h-auto'>
-				<Link href={`/vc/${app._id}`}>
+				<Link
+					href={`/vc/${app._id}`}
+					onMouseEnter={() => {
+						router.prefetch(`/vc/${app._id}`);
+					}}>
 					<div className='flex flex-col items-start gap-3 w-full'>
 						<div className='flex items-center justify-between w-full'>
 							<div>
@@ -155,14 +165,13 @@ export function CompanySidebar() {
 						</div>
 
 						<p className='text-xs text-muted-foreground leading-relaxed'>
-							{app.company.oneLiner ?? app.product.description ?? ''}
+							{app.company.oneLiner ?? ''}
 						</p>
 
 						<div className='flex items-center justify-between w-full'>
 							<div className='flex items-center gap-4 text-xs text-muted-foreground'>
 								{app.traction?.mrr && (
 									<div className='flex items-center gap-1'>
-										<DollarSign className='h-3 w-3' />
 										<span>{app.traction.mrr} MRR</span>
 									</div>
 								)}
@@ -191,7 +200,7 @@ export function CompanySidebar() {
 						e.preventDefault();
 						togglePin(app._id);
 					}}>
-					{pinnedCompanies.has(app._id) ? (
+					{app.pinned ? (
 						<PinOff className='h-3 w-3' />
 					) : (
 						<Pin className='h-3 w-3' />

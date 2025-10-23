@@ -1,0 +1,106 @@
+flowchart TD
+    %% Main Application Flow
+    Start([Start: Choose Role]) --> RoleSelection{Role Selection}
+
+    %% Founder Flow
+    RoleSelection -->|Founder| FounderApplication[Founder Application Form]
+
+    %% Simplified Founder Application Steps
+    FounderApplication --> Step1[1. Company & Documents<br/>- Basic Info, Deck<br/>- Financials, Legal Docs]
+    Step1 --> Step2[2. Team & Product<br/>- Founder Details<br/>- Product Description<br/>- Market Analysis]
+    Step2 --> Step3[3. Traction & Submit<br/>- Metrics, KPIs<br/>- Submit Application]
+
+    %% Founder Submission
+    Step3 --> SubmitApplication[Submit Application]
+    SubmitApplication --> StoreDB[(Convex Database)]
+    StoreDB --> NotifyVC[Notify VCs]
+
+    %% VC Flow
+    RoleSelection -->|VC| VCOverview[VC Dashboard Overview]
+
+    %% VC Dashboard Components
+    VCOverview --> SuccessMetrics[Success Metrics<br/>- Portfolio Wins<br/>- Follow-on Funding<br/>- Growth Milestones]
+    VCOverview --> IssuesAttention[Issues & Attention<br/>- Hiring Delays<br/>- Growth Slowdowns<br/>- Risk Flags]
+    VCOverview --> NewsUpdates[Recent News<br/>- Company Updates<br/>- Market News<br/>- Press Releases]
+    VCOverview --> AutomatedAlerts[Automated Alerts<br/>- Risk Warnings<br/>- Growth Flags<br/>- Market Changes]
+
+    %% VC Company Analysis
+    VCOverview --> CompanyList[Portfolio Companies]
+    CompanyList --> SelectCompany{Select Company}
+    SelectCompany -->|Individual Company| CompanyAnalysis[Company Analysis Page]
+
+    %% AI Analysis Options
+    CompanyAnalysis --> AnalysisType{Analysis Type}
+    AnalysisType -->|Single Agent| SingleAgentAnalysis[Single Agent Analysis]
+    AnalysisType -->|Multi-Agent| MultiAgentAnalysis[Multi-Agent Analysis]
+
+    %% Single Agent Analysis Flow
+    SingleAgentAnalysis --> StartSingle[Start Analysis]
+    StartSingle --> JobQueue1[(Analysis Queue)]
+    JobQueue1 --> IngestData1[Data Ingestion<br/>- Parse Application<br/>- Extract Documents<br/>- Process Metrics]
+    IngestData1 --> AIAnalysis1[AI Analysis<br/>- Market Analysis<br/>- Financial Review<br/>- Risk Assessment]
+    AIAnalysis1 --> GenerateReport1[Generate Report<br/>- Executive Summary<br/>- Key Metrics<br/>- Risk Analysis<br/>- Recommendations]
+
+    %% Multi-Agent Analysis Flow
+    MultiAgentAnalysis --> StartMulti[Start Multi-Agent]
+    StartMulti --> JobQueue2[(Analysis Queue)]
+    JobQueue2 --> AgentOrchestration[Agent Orchestration<br/>- Finance Agent<br/>- Market Agent<br/>- Technical Agent<br/>- Competition Agent<br/>- Evaluation Agent]
+
+    AgentOrchestration --> Agent1[Finance Agent<br/>- Revenue Analysis<br/>- Cost Structure<br/>- Financial Projections<br/>- Valuation Metrics]
+    AgentOrchestration --> Agent2[Market Agent<br/>- Market Size<br/>- Customer Analysis<br/>- Competitive Landscape<br/>- GTM Strategy]
+    AgentOrchestration --> Agent3[Technical Agent<br/>- Product Architecture<br/>- Technical Risks<br/>- Scalability<br/>- IP Assessment]
+    AgentOrchestration --> Agent4[Competition Agent<br/>- Direct Competitors<br/>- Market Position<br/>- Differentiation<br/>- Barriers to Entry]
+    AgentOrchestration --> Agent5[Evaluation Agent<br/>- Investment Thesis<br/>- Risk Assessment<br/>- Growth Potential<br/>- Exit Strategy]
+
+    %% Agent Collaboration
+    Agent1 --> Collaboration[Agent Collaboration<br/>- Cross-reference Findings<br/>- Consensus Building<br/>- Confidence Scoring<br/>- Recommendation Synthesis]
+    Agent2 --> Collaboration
+    Agent3 --> Collaboration
+    Agent4 --> Collaboration
+    Agent5 --> Collaboration
+
+    Collaboration --> GenerateMultiReport[Generate Multi-Agent Report<br/>- Consolidated Analysis<br/>- Investment Recommendation<br/>- Confidence Score<br/>- Detailed Findings]
+
+    %% Analysis Results
+    GenerateReport1 --> AnalysisResults[Analysis Results]
+    GenerateMultiReport --> AnalysisResults
+
+    %% VC Analysis Components
+    AnalysisResults --> Snapshot[Company Snapshot<br/>- Overview<br/>- Key Stats<br/>- Stage & Sector]
+    AnalysisResults --> Benchmarks[Performance Benchmarks<br/>- Peer Comparisons<br/>- Industry Standards<br/>- Growth Metrics]
+    AnalysisResults --> Frameworks[Evaluation Frameworks<br/>- Scoring Models<br/>- Investment Criteria<br/>- Due Diligence Checklist]
+    AnalysisResults --> Risks[Risk Analysis<br/>- Market Risks<br/>- Execution Risks<br/>- Financial Risks<br/>- Competitive Risks]
+    AnalysisResults --> Sources[Sources & Evidence<br/>- Data Sources<br/>- Confidence Levels<br/>- Supporting Evidence]
+    AnalysisResults --> ReportPreview[Report Preview<br/>- Executive Summary<br/>- Investment Memo<br/>- Key Insights]
+    AnalysisResults --> AgentActivity[Agent Activity Dashboard<br/>- Tool Calls<br/>- Agent Interactions<br/>- Analysis Timeline<br/>- Performance Metrics]
+
+    %% Investment Decision
+    ReportPreview --> InvestmentDecision{Investment Decision}
+    InvestmentDecision -->|Strong Buy| StrongBuy[Strong Buy<br/>High Confidence]
+    InvestmentDecision -->|Buy| Buy[Buy<br/>Positive Outlook]
+    InvestmentDecision -->|Hold| Hold[Hold<br/>Monitor Closely]
+    InvestmentDecision -->|Sell| Sell[Sell<br/>Concerns]
+    InvestmentDecision -->|Strong Sell| StrongSell[Strong Sell<br/>High Risk]
+
+    %% Data Storage
+    GenerateReport1 --> StoreAnalysis[(Store Analysis<br/>Database)]
+    GenerateMultiReport --> StoreAnalysis
+    StoreDB --> StoreAnalysis
+
+    %% Continuous Monitoring
+    StoreAnalysis --> Monitor[Continuous Monitoring<br/>- Real-time Updates<br/>- New Data Ingestion<br/>- Automated Alerts<br/>- Trend Analysis]
+
+
+    %% Styling
+    classDef founderFlow fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef vcFlow fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef aiProcess fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px
+    classDef dataFlow fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef decisionPoint fill:#ffebee,stroke:#b71c1c,stroke-width:2px
+
+    class FounderApplication,Step1,Step2,Step3,SubmitApplication founderFlow
+    class VCOverview,SuccessMetrics,IssuesAttention,NewsUpdates,AutomatedAlerts,CompanyList,SelectCompany,CompanyAnalysis founderFlow
+    class AnalysisType,SingleAgentAnalysis,MultiAgentAnalysis,StartSingle,StartMulti,JobQueue1,JobQueue2,IngestData1,AIAnalysis1,GenerateReport1,AgentOrchestration,Agent1,Agent2,Agent3,Agent4,Agent5,Collaboration,GenerateMultiReport aiProcess
+    class Snapshot,Benchmarks,Frameworks,Risks,Sources,ReportPreview,AgentActivity,InvestmentDecision,StrongBuy,Buy,Hold,Sell,StrongSell vcFlow
+    class StoreDB,StoreAnalysis,NotifyVC,Monitor dataFlow
+    class RoleSelection,AnalysisType,InvestmentDecision decisionPoint
