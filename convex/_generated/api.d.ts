@@ -8,11 +8,14 @@
  * @module
  */
 
+import type * as actions_news from "../actions/news.js";
 import type * as agent_activity from "../agent_activity.js";
 import type * as ai from "../ai.js";
 import type * as analysis from "../analysis.js";
+import type * as crons from "../crons.js";
 import type * as founders from "../founders.js";
 import type * as multi_agent_analysis from "../multi_agent_analysis.js";
+import type * as news_workflow from "../news_workflow.js";
 import type * as prompt from "../prompt.js";
 
 import type {
@@ -30,11 +33,14 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "actions/news": typeof actions_news;
   agent_activity: typeof agent_activity;
   ai: typeof ai;
   analysis: typeof analysis;
+  crons: typeof crons;
   founders: typeof founders;
   multi_agent_analysis: typeof multi_agent_analysis;
+  news_workflow: typeof news_workflow;
   prompt: typeof prompt;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
@@ -346,7 +352,7 @@ export declare const components: {
                               Record<string, any>
                             >;
                             sourceType: "url";
-                            title: string;
+                            title?: string;
                             type: "source";
                             url: string;
                           }
@@ -649,7 +655,7 @@ export declare const components: {
                               Record<string, any>
                             >;
                             sourceType: "url";
-                            title: string;
+                            title?: string;
                             type: "source";
                             url: string;
                           }
@@ -957,7 +963,7 @@ export declare const components: {
                           >;
                           providerOptions?: Record<string, Record<string, any>>;
                           sourceType: "url";
-                          title: string;
+                          title?: string;
                           type: "source";
                           url: string;
                         }
@@ -1275,7 +1281,7 @@ export declare const components: {
                               Record<string, any>
                             >;
                             sourceType: "url";
-                            title: string;
+                            title?: string;
                             type: "source";
                             url: string;
                           }
@@ -1564,7 +1570,7 @@ export declare const components: {
                           >;
                           providerOptions?: Record<string, Record<string, any>>;
                           sourceType: "url";
-                          title: string;
+                          title?: string;
                           type: "source";
                           url: string;
                         }
@@ -1837,7 +1843,7 @@ export declare const components: {
                           >;
                           providerOptions?: Record<string, Record<string, any>>;
                           sourceType: "url";
-                          title: string;
+                          title?: string;
                           type: "source";
                           url: string;
                         }
@@ -2134,7 +2140,7 @@ export declare const components: {
                               Record<string, any>
                             >;
                             sourceType: "url";
-                            title: string;
+                            title?: string;
                             type: "source";
                             url: string;
                           }
@@ -2348,7 +2354,7 @@ export declare const components: {
                           >;
                           providerOptions?: Record<string, Record<string, any>>;
                           sourceType: "url";
-                          title: string;
+                          title?: string;
                           type: "source";
                           url: string;
                         }
@@ -2497,6 +2503,7 @@ export declare const components: {
         "internal",
         {
           agentName?: string;
+          format?: "UIMessageChunk" | "TextStreamPart";
           model?: string;
           order: number;
           provider?: string;
@@ -2561,6 +2568,7 @@ export declare const components: {
         },
         Array<{
           agentName?: string;
+          format?: "UIMessageChunk" | "TextStreamPart";
           model?: string;
           order: number;
           provider?: string;

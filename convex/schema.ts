@@ -227,4 +227,19 @@ export default defineSchema({
 		.index('by_companyId_jobId', ['companyId', 'jobId'])
 		.index('by_agentId_timestamp', ['agentId', 'timestamp'])
 		.index('by_threadId_timestamp', ['threadId', 'timestamp']),
+
+	// Table to store cached news with TTL
+	cachedNews: defineTable({
+		newsItems: v.array(
+			v.object({
+				title: v.string(),
+				source: v.optional(v.string()),
+				date: v.string(),
+				url: v.optional(v.string()),
+				summary: v.optional(v.string()),
+			}),
+		),
+		cachedAt: v.number(), // Timestamp when news was cached
+		expiresAt: v.number(), // Timestamp when cache should expire (cachedAt + 24 hours)
+	}).index('by_expiresAt', ['expiresAt']),
 });
