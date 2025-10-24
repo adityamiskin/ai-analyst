@@ -18,11 +18,70 @@ import {
 	FormMessage,
 } from '@/components/ui/form';
 import type { UseFormReturn } from 'react-hook-form';
-import type { FileRef } from './file-picker';
-import { FilePicker } from './file-picker';
-import { FileList } from './file-list';
 
-export type TractionTabForm = UseFormReturn<any>;
+type FormData = {
+	company: {
+		name: string;
+		website: string;
+		location: string;
+		oneLiner: string;
+		stage: string;
+		whatDoYouDo: string;
+		whyNow: string;
+	};
+	team: {
+		founders: Array<{
+			name: string;
+			email: string;
+			designation: string;
+		}>;
+		isFullTime: boolean;
+		howLongWorked: string;
+		relevantExperience: string;
+	};
+	product: {
+		description: string;
+		demoUrl: string;
+		defensibility: string;
+		videoUrl: string;
+	};
+	market: {
+		customer: string;
+		competitors: string;
+		differentiation: string;
+		gtm: string;
+		tam: string;
+		sam: string;
+		som: string;
+	};
+	traction: {
+		isLaunched: string;
+		launchDate: string;
+		mrr: string;
+		growth: string;
+		activeUsersCount: string;
+		pilots: string;
+		kpis: string;
+	};
+	documents: {
+		pitchDeck: Array<{
+			name: string;
+			size: number;
+			file?: File;
+			storageId?: string;
+			mediaType?: string;
+		}>;
+		other: Array<{
+			name: string;
+			size: number;
+			file?: File;
+			storageId?: string;
+			mediaType?: string;
+		}>;
+	};
+};
+
+export type TractionTabForm = UseFormReturn<FormData>;
 
 export function TractionTab({ form }: { form: TractionTabForm }) {
 	return (
@@ -106,27 +165,6 @@ export function TractionTab({ form }: { form: TractionTabForm }) {
 					)}
 				/>
 			</div>
-
-			<FormField
-				control={form.control}
-				name='traction.metricsCsv'
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>Upload metrics CSV (optional)</FormLabel>
-						<FormControl>
-							<FilePicker
-								id='metrics'
-								label=''
-								accept='.csv'
-								value={field.value as FileRef[]}
-								onChange={field.onChange}
-							/>
-						</FormControl>
-						<FileList files={field.value as FileRef[]} />
-						<FormMessage />
-					</FormItem>
-				)}
-			/>
 
 			<FormField
 				control={form.control}

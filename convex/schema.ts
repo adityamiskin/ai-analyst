@@ -4,6 +4,7 @@ import { v } from 'convex/values';
 const fileRef = v.object({
 	name: v.string(),
 	size: v.number(),
+	storageId: v.optional(v.id('_storage')),
 });
 
 const founder = v.object({
@@ -99,7 +100,6 @@ export default defineSchema({
 			stage: v.string(),
 			whatDoYouDo: v.string(),
 			whyNow: v.string(),
-			deck: v.array(fileRef),
 		}),
 		team: v.object({
 			founders: v.array(founder),
@@ -112,8 +112,6 @@ export default defineSchema({
 			demoUrl: v.string(),
 			defensibility: v.string(),
 			videoUrl: v.string(),
-			videoFile: v.array(fileRef),
-			supportingDocs: v.array(fileRef),
 		}),
 		market: v.object({
 			customer: v.string(),
@@ -132,13 +130,10 @@ export default defineSchema({
 			activeUsersCount: v.string(),
 			pilots: v.string(),
 			kpis: v.string(),
-			metricsCsv: v.array(fileRef),
 		}),
 		documents: v.object({
-			financialModel: v.array(fileRef),
-			capTable: v.array(fileRef),
-			incorporation: v.array(fileRef),
-			other: v.array(fileRef),
+			pitchDeck: v.optional(v.array(fileRef)),
+			other: v.optional(v.array(fileRef)),
 		}),
 		primaryEmail: v.string(),
 		createdAt: v.number(),

@@ -28,8 +28,7 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 	return (
 		<>
 			<p className='text-sm text-muted-foreground'>
-				Basics and your one-liner. Upload your pitch deck here so investors can
-				review context alongside answers.
+				Basics and your one-liner.
 			</p>
 			<div className='grid gap-4 md:grid-cols-2'>
 				<FormField
@@ -145,26 +144,6 @@ export function CompanyTab({ form }: { form: CompanyTabForm }) {
 					)}
 				/>
 			</div>
-			<FormField
-				control={form.control}
-				name='company.deck'
-				render={({ field }) => (
-					<FormItem>
-						<FormLabel>Upload pitch deck (PDF/PPT)</FormLabel>
-						<FormControl>
-							<FilePicker
-								id='deck'
-								label=''
-								accept='.pdf,.ppt,.pptx'
-								value={field.value as FileRef[]}
-								onChange={field.onChange}
-							/>
-						</FormControl>
-						<FileList files={field.value as FileRef[]} />
-						<FormMessage />
-					</FormItem>
-				)}
-			/>
 		</>
 	);
 }

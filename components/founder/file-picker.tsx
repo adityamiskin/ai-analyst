@@ -4,14 +4,19 @@ import * as React from 'react';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
-export type FileRef = { name: string; size: number };
+export type FileRef = {
+	name: string;
+	size: number;
+	file?: File;
+	storageId?: string;
+	mediaType?: string;
+};
 
 type FilePickerProps = {
 	id: string;
 	label: string;
 	accept?: string;
 	multiple?: boolean;
-	value: FileRef[];
 	onChange: (files: FileRef[]) => void;
 };
 
@@ -20,7 +25,6 @@ export function FilePicker({
 	label,
 	accept,
 	multiple = true,
-	value,
 	onChange,
 }: FilePickerProps) {
 	return (
@@ -35,6 +39,7 @@ export function FilePicker({
 					const list = Array.from(e.target.files || []).map((f) => ({
 						name: f.name,
 						size: f.size,
+						file: f,
 					}));
 					onChange(list);
 				}}

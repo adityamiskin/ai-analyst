@@ -51,7 +51,6 @@ const formSchema = z.object({
 		stage: z.string().min(1, 'Stage is required'),
 		whatDoYouDo: z.string().min(1, 'Description is required'),
 		whyNow: z.string().min(1, 'Why now explanation is required'),
-		deck: z.array(fileRefSchema),
 	}),
 	team: z.object({
 		founders: z.array(founderSchema).min(1, 'At least one founder is required'),
@@ -64,8 +63,6 @@ const formSchema = z.object({
 		demoUrl: z.string().url('Valid demo URL is required').or(z.literal('')),
 		defensibility: z.string().min(1, 'Defensibility explanation is required'),
 		videoUrl: z.string().url('Valid video URL is required').or(z.literal('')),
-		videoFile: z.array(fileRefSchema),
-		supportingDocs: z.array(fileRefSchema),
 	}),
 	market: z.object({
 		customer: z.string().min(1, 'Customer description is required'),
@@ -84,12 +81,9 @@ const formSchema = z.object({
 		activeUsersCount: z.string(),
 		pilots: z.string(),
 		kpis: z.string(),
-		metricsCsv: z.array(fileRefSchema),
 	}),
 	documents: z.object({
-		financialModel: z.array(fileRefSchema),
-		capTable: z.array(fileRefSchema),
-		incorporation: z.array(fileRefSchema),
+		pitchDeck: z.array(fileRefSchema).min(1, 'Pitch deck is required'),
 		other: z.array(fileRefSchema),
 	}),
 });
@@ -105,7 +99,6 @@ const defaultValues: FormData = {
 		stage: '',
 		whatDoYouDo: '',
 		whyNow: '',
-		deck: [],
 	},
 	team: {
 		founders: [
@@ -124,8 +117,6 @@ const defaultValues: FormData = {
 		demoUrl: '',
 		defensibility: '',
 		videoUrl: '',
-		videoFile: [],
-		supportingDocs: [],
 	},
 	market: {
 		customer: '',
@@ -144,12 +135,9 @@ const defaultValues: FormData = {
 		activeUsersCount: '',
 		pilots: '',
 		kpis: '',
-		metricsCsv: [],
 	},
 	documents: {
-		financialModel: [],
-		capTable: [],
-		incorporation: [],
+		pitchDeck: [],
 		other: [],
 	},
 };
@@ -175,7 +163,7 @@ export default function YCQuestionnaire() {
 				return;
 			}
 
-			const result = await createApplication({ ...data, primaryEmail });
+			await createApplication({ ...data, primaryEmail });
 
 			toast.success('Application submitted successfully!');
 			form.reset(defaultValues);
@@ -186,6 +174,14 @@ export default function YCQuestionnaire() {
 					error instanceof Error ? error.message : 'Unknown error'
 				}`,
 			);
+		}
+	};
+
+	const handleFormKeyDown = (e: React.KeyboardEvent) => {
+		if (e.key === 'Enter' && e.target instanceof HTMLInputElement) {
+			// Prevent form submission when pressing Enter in input fields
+			// Only allow submission through the explicit Submit button
+			e.preventDefault();
 		}
 	};
 
@@ -221,14 +217,14 @@ export default function YCQuestionnaire() {
 	const [currentStep, setCurrentStep] = React.useState(0);
 	const steps = [
 		{
-			key: 'company',
-			label: 'Company',
-			render: () => <CompanyTab form={form} />,
-		},
-		{
 			key: 'documents',
 			label: 'Documents',
 			render: () => <DocumentsTab form={form} />,
+		},
+		{
+			key: 'company',
+			label: 'Company',
+			render: () => <CompanyTab form={form} />,
 		},
 		{
 			key: 'team',
@@ -258,9 +254,10 @@ export default function YCQuestionnaire() {
 	const totalSteps = steps.length;
 	const progressPercent = ((currentStep + 1) / totalSteps) * 100;
 
-	const handleNext = async () => {
+	const handleNext = async (e: React.MouseEvent) => {
+		e.preventDefault();
 		const currentKey = steps[currentStep].key as keyof FormData;
-		const isValid = await form.trigger(currentKey as any, {
+		const isValid = await form.trigger(currentKey, {
 			shouldFocus: true,
 		});
 		if (!isValid) {
@@ -295,6 +292,7 @@ export default function YCQuestionnaire() {
 					<Form {...form}>
 						<form
 							onSubmit={form.handleSubmit(onSubmit)}
+							onKeyDown={handleFormKeyDown}
 							className='space-y-6 h-full'>
 							<div className='space-y-6'>
 								<div className='flex items-center gap-4'>

@@ -170,11 +170,6 @@ export function CompanySidebar() {
 
 						<div className='flex items-center justify-between w-full'>
 							<div className='flex items-center gap-4 text-xs text-muted-foreground'>
-								{app.traction?.mrr && (
-									<div className='flex items-center gap-1'>
-										<span>{app.traction.mrr} MRR</span>
-									</div>
-								)}
 								<div className='flex items-center gap-1'>
 									<Calendar className='h-3 w-3' />
 									<span>
@@ -219,8 +214,8 @@ export function CompanySidebar() {
 						<AlertDialogHeader>
 							<AlertDialogTitle>Delete Company</AlertDialogTitle>
 							<AlertDialogDescription>
-								Are you sure you want to delete "{app.company.name}
-								"? This action cannot be undone.
+								Are you sure you want to delete &quot;{app.company.name}
+								&quot;? This action cannot be undone.
 							</AlertDialogDescription>
 						</AlertDialogHeader>
 						<AlertDialogFooter>

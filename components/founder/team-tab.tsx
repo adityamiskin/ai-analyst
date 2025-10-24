@@ -36,7 +36,7 @@ export function TeamTab({
 	return (
 		<>
 			<p className='text-sm text-muted-foreground'>
-				Who's building this and how you work together.
+				Who&apos;s building this and how you work together.
 			</p>
 
 			<div className='space-y-4'>
@@ -53,7 +53,8 @@ export function TeamTab({
 
 				{form.watch('team.founders').length === 0 ? (
 					<p className='text-sm text-muted-foreground'>
-						No founders added yet. Click "Add a Founder" to get started.
+						No founders added yet. Click &quot;Add a Founder&quot; to get
+						started.
 					</p>
 				) : (
 					<div className='space-y-3'>

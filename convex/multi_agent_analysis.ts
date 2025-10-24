@@ -19,8 +19,9 @@ import {
 } from './ai';
 import { api, internal } from './_generated/api';
 import { groq } from '@ai-sdk/groq';
+import { Thread } from '@convex-dev/agent';
+import { openai } from '@ai-sdk/openai';
 
-// Zod schemas for each agent's analysis - made more flexible
 const agentAnalysisSchema = z.object({
 	agentId: z
 		.string()
@@ -67,7 +68,7 @@ const agentAnalysisSchema = z.object({
 				value: z
 					.number()
 					.default(0)
-					.describe('The numeric value of the metric'),
+					.describe('The numeric value of the metric till 2 decimal places'),
 				unit: z
 					.string()
 					.optional()
@@ -319,7 +320,21 @@ const multiAgentSnapshotSchema = z.object({
 		),
 });
 
-// Build baseline context shared by all agents
+async function generateStructuredResult(
+	thread: Thread<any>,
+	resultText: string,
+) {
+	const structuredResult = await thread.generateObject({
+		prompt:
+			resultText +
+			'\n\nGive the summary in proper markdown format without the markdown tags',
+		model: openai.responses('gpt-4.1'),
+		schema: agentAnalysisSchema,
+	});
+
+	return structuredResult.object;
+}
+
 function buildBaselineContext(app: any): string {
 	const parts: string[] = [];
 	if (!app) return '';
@@ -365,7 +380,6 @@ async function runFinanceAnalysis(
 Company baseline context: ${baselineContext}`;
 
 	try {
-		// Log agent start before execution
 		await ctx.runMutation(internal.agent_activity.logAgentActivity, {
 			companyId,
 			jobId,
@@ -385,15 +399,11 @@ Company baseline context: ${baselineContext}`;
 			},
 		);
 
-		const structuredResult = await thread.generateObject({
-			prompt:
-				result.text +
-				'\n\nGive the summary in proper markdown format without the markdown tags',
-			model: google('gemini-2.5-flash'),
-			schema: agentAnalysisSchema,
-		});
+		const structuredResult = await generateStructuredResult(
+			thread,
+			result.text,
+		);
 
-		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
 			companyId,
 			jobId,
@@ -403,7 +413,7 @@ Company baseline context: ${baselineContext}`;
 			skipStartLog: true,
 		});
 
-		return structuredResult.object;
+		return structuredResult;
 	} catch (error) {
 		console.error('Finance analysis failed:', error);
 
@@ -480,13 +490,10 @@ Company baseline context: ${baselineContext}`;
 			},
 		);
 
-		const structuredResult = await thread.generateObject({
-			prompt:
-				result.text +
-				'\n\nGive the summary in proper markdown format without the markdown tags',
-			model: google('gemini-2.5-flash'),
-			schema: agentAnalysisSchema,
-		});
+		const structuredResult = await generateStructuredResult(
+			thread,
+			result.text,
+		);
 
 		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
@@ -498,7 +505,7 @@ Company baseline context: ${baselineContext}`;
 			skipStartLog: true,
 		});
 
-		return structuredResult.object;
+		return structuredResult;
 	} catch (error) {
 		console.error('Evaluation analysis failed:', error);
 
@@ -575,13 +582,10 @@ Company baseline context: ${baselineContext}`;
 			},
 		);
 
-		const structuredResult = await thread.generateObject({
-			prompt:
-				result.text +
-				'\n\nGive the summary in proper markdown format without the markdown tags',
-			model: google('gemini-2.5-flash'),
-			schema: agentAnalysisSchema,
-		});
+		const structuredResult = await generateStructuredResult(
+			thread,
+			result.text,
+		);
 
 		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
@@ -595,7 +599,7 @@ Company baseline context: ${baselineContext}`;
 
 		console.log('Competitor analysis completed');
 
-		return structuredResult.object;
+		return structuredResult;
 	} catch (error) {
 		console.error('Competitor analysis failed:', error);
 
@@ -672,13 +676,10 @@ Company baseline context: ${baselineContext}`;
 			},
 		);
 
-		const structuredResult = await thread.generateObject({
-			prompt:
-				result.text +
-				'\n\nGive the summary in proper markdown format without the markdown tags',
-			model: google('gemini-2.5-flash'),
-			schema: agentAnalysisSchema,
-		});
+		const structuredResult = await generateStructuredResult(
+			thread,
+			result.text,
+		);
 
 		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
@@ -692,7 +693,7 @@ Company baseline context: ${baselineContext}`;
 
 		console.log('Market analysis completed');
 
-		return structuredResult.object;
+		return structuredResult;
 	} catch (error) {
 		console.error('Market analysis failed:', error);
 
@@ -769,13 +770,10 @@ Company baseline context: ${baselineContext}`;
 			},
 		);
 
-		const structuredResult = await thread.generateObject({
-			prompt:
-				result.text +
-				'\n\nGive the summary in proper markdown format without the markdown tags',
-			model: google('gemini-2.5-flash'),
-			schema: agentAnalysisSchema,
-		});
+		const structuredResult = await generateStructuredResult(
+			thread,
+			result.text,
+		);
 
 		// Extract agent activity after completion (skip start log since we already logged it)
 		await ctx.runAction(internal.agent_activity.extractAgentActivity, {
@@ -789,7 +787,7 @@ Company baseline context: ${baselineContext}`;
 
 		console.log('Technical analysis completed');
 
-		return structuredResult.object;
+		return structuredResult;
 	} catch (error) {
 		console.error('Technical analysis failed:', error);
 
@@ -828,7 +826,6 @@ Company baseline context: ${baselineContext}`;
 	}
 }
 
-// Internal mutation to update job status
 export const updateJobStatus = internalMutation({
 	args: {
 		jobId: v.id('analysisJobs'),
@@ -860,7 +857,6 @@ export const updateJobStatus = internalMutation({
 	},
 });
 
-// Main multi-agent analysis function
 export const runMultiAgentAnalysis = internalAction({
 	args: { companyId: v.id('founderApplications'), jobId: v.id('analysisJobs') },
 	handler: async (ctx, { companyId, jobId }) => {
@@ -1234,7 +1230,6 @@ export const getLatestMultiAgentSnapshot = query({
 	},
 });
 
-// Query to get current job status for a company and job type
 export const getJobStatus = query({
 	args: {
 		companyId: v.id('founderApplications'),
