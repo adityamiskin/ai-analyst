@@ -2,6 +2,7 @@ import {
   action,
   internalAction,
   internalMutation,
+  internalQuery,
   mutation,
   query,
 } from "./_generated/server";
@@ -22,6 +23,8 @@ import { buildSectionText } from "./analysis";
 import { groq } from "@ai-sdk/groq";
 import { Thread } from "@convex-dev/agent";
 import { openai } from "@ai-sdk/openai";
+import { GenericActionCtx } from "convex/server";
+import { DataModel, Id } from "./_generated/dataModel";
 
 const agentAnalysisSchema = z.object({
   agentId: z
@@ -337,7 +340,7 @@ async function generateStructuredResult(
 }
 
 async function runFinanceAnalysis(
-  ctx: any,
+  ctx: GenericActionCtx<DataModel>,
   companyId: string,
   baselineContext: string,
   jobId: string,
@@ -427,10 +430,10 @@ Company baseline context: ${baselineContext}`;
 }
 
 async function runEvaluationAnalysis(
-  ctx: any,
-  companyId: string,
+  ctx: GenericActionCtx<DataModel>,
+  companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: string,
+  jobId: Id<"analysisJobs">,
 ) {
   const evaluationAgent = createEvaluationAgent(companyId);
   const { thread } = await evaluationAgent.createThread(ctx, {
@@ -519,10 +522,10 @@ Company baseline context: ${baselineContext}`;
 }
 
 async function runCompetitorAnalysis(
-  ctx: any,
-  companyId: string,
+  ctx: GenericActionCtx<DataModel>,
+  companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: string,
+  jobId: Id<"analysisJobs">,
 ) {
   const competitorAgent = createCompetitorAgent(companyId);
   const { thread } = await competitorAgent.createThread(ctx, {
@@ -613,10 +616,10 @@ Company baseline context: ${baselineContext}`;
 }
 
 async function runMarketAnalysis(
-  ctx: any,
-  companyId: string,
+  ctx: GenericActionCtx<DataModel>,
+  companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: string,
+  jobId: Id<"analysisJobs">,
 ) {
   const marketAgent = createMarketAgent(companyId);
   const { thread } = await marketAgent.createThread(ctx, {
@@ -707,10 +710,10 @@ Company baseline context: ${baselineContext}`;
 }
 
 async function runTechnicalAnalysis(
-  ctx: any,
-  companyId: string,
+  ctx: GenericActionCtx<DataModel>,
+  companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: string,
+  jobId: Id<"analysisJobs">,
 ) {
   const technicalAgent = createTechnicalAgent(companyId);
   const { thread } = await technicalAgent.createThread(ctx, {
@@ -868,9 +871,13 @@ export const runMultiAgentAnalysis = internalAction({
       });
 
       // Get baseline company data for shared context
-      const companyDoc = await ctx.runQuery(api.founders.getApplication, {
-        id: companyId,
-      });
+      const companyDoc = await ctx.runQuery(
+        internal.multi_agent_analysis.getApplicationById,
+        {
+          id: companyId,
+        },
+      );
+
       const baselineContext = buildSectionText(companyDoc);
 
       // Update job status for agent analysis phase
@@ -1172,7 +1179,6 @@ export const startMultiAgentAnalysis = mutation({
     // Create a job record
     const jobId = await ctx.db.insert("analysisJobs", {
       companyId,
-      jobType: "multi_agent",
       status: "queued",
       progress: 0,
       message: "Multi-agent analysis job queued",
@@ -1207,14 +1213,11 @@ export const getLatestMultiAgentSnapshot = query({
 export const getJobStatus = query({
   args: {
     companyId: v.id("founderApplications"),
-    jobType: v.literal("multi_agent"),
   },
-  handler: async (ctx, { companyId, jobType }) => {
+  handler: async (ctx, { companyId }) => {
     const doc = await ctx.db
       .query("analysisJobs")
-      .withIndex("by_companyId_jobType", (q) =>
-        q.eq("companyId", companyId).eq("jobType", jobType),
-      )
+      .withIndex("by_companyId_createdAt", (q) => q.eq("companyId", companyId))
       .order("desc")
       .first();
     return doc ?? null;

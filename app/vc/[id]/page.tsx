@@ -42,7 +42,9 @@ export default async function VCPage({ params }: VCPageProps) {
           </Suspense>
         </div>
       </header>
-      <AnalysisContainer />
+      <Suspense fallback={<div>Loading...</div>}>
+        <AnalysisContainer />
+      </Suspense>
     </>
   );
 }

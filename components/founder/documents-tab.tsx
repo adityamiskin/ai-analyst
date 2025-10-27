@@ -9,7 +9,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { UseFormReturn } from "react-hook-form";
-import type { FileRef } from "./file-picker";
 import { FilePicker } from "./file-picker";
 import { FileList } from "./file-list";
 import { useAction } from "convex/react";
@@ -17,101 +16,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-
-type FormData = {
-  company: {
-    name: string;
-    website: string;
-    location: string;
-    oneLiner: string;
-    stage: string;
-    whatDoYouDo: string;
-    whyNow: string;
-    deck?: FileRef[];
-  };
-  team: {
-    founders: Array<{
-      name: string;
-      email: string;
-      designation: string;
-    }>;
-    isFullTime: boolean;
-    howLongWorked: string;
-    relevantExperience: string;
-  };
-  product: {
-    description: string;
-    demoUrl: string;
-    defensibility: string;
-    videoUrl: string;
-  };
-  market: {
-    customer: string;
-    competitors: string;
-    differentiation: string;
-    gtm: string;
-    tam: string;
-    sam: string;
-    som: string;
-  };
-  traction: {
-    isLaunched: string;
-    launchDate: string;
-    mrr: string;
-    growth: string;
-    activeUsersCount: string;
-    pilots: string;
-    kpis: string;
-  };
-  documents: {
-    pitchDeck: FileRef[];
-    other: FileRef[];
-  };
-};
-
-type PitchDeckAnalysis = {
-  company?: {
-    name?: string;
-    website?: string;
-    location?: string;
-    oneLiner?: string;
-    stage?: "preseed" | "seed" | "series-a" | "series-b-plus";
-    whatDoYouDo?: string;
-    whyNow?: string;
-  };
-  team?: {
-    founders?: Array<{
-      name: string;
-      email?: string;
-      designation?: string;
-    }>;
-    isFullTime?: boolean;
-    relevantExperience?: string;
-  };
-  product?: {
-    description?: string;
-    demoUrl?: string;
-    defensibility?: string;
-  };
-  market?: {
-    customer?: string;
-    competitors?: string;
-    differentiation?: string;
-    gtm?: string;
-    tam?: string;
-    sam?: string;
-    som?: string;
-  };
-  traction?: {
-    isLaunched?: "yes" | "no" | "soon";
-    launchDate?: string;
-    mrr?: string;
-    growth?: string;
-    activeUsersCount?: string;
-    pilots?: string;
-    kpis?: string;
-  };
-};
+import type { FormData, FileRef, PitchDeckAnalysis } from "@/lib/types";
 
 export type DocumentsTabForm = UseFormReturn<FormData>;
 
@@ -433,7 +338,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
                   }}
                 />
               </FormControl>
-              <FileList files={field.value as FileRef[]} />
+              <FileList files={field.value} />
               <FormMessage />
             </FormItem>
           )}
@@ -453,7 +358,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
                   }}
                 />
               </FormControl>
-              <FileList files={field.value as FileRef[]} />
+              <FileList files={field.value} />
               <FormMessage />
             </FormItem>
           )}

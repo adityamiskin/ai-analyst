@@ -6,21 +6,22 @@ import { z } from "zod";
 import { action, internalAction } from "../_generated/server";
 import { api, internal } from "../_generated/api";
 
-export interface NewsItem {
+// Define types for Convex context
+type NewsItem = {
   title: string;
   source?: string;
   date: string;
   url?: string;
   summary?: string;
-}
+};
 
-export interface CompanyInfo {
+type CompanyInfo = {
   name: string;
   oneLiner: string;
   stage: string;
   location: string;
   mrr: string;
-}
+};
 
 // Schema for structured news output
 const newsItemSchema = z.object({

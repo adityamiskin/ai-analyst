@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { CompanyTab } from "@/components/founder/company-tab";
@@ -23,72 +22,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
-
-type Founder = {
-  name: string;
-  email: string;
-  designation: string;
-};
-
-// Zod schema for form validation
-const fileRefSchema = z.object({
-  name: z.string(),
-  size: z.number(),
-});
-
-const founderSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  email: z.string().email("Valid email is required"),
-  designation: z.string().min(1, "Designation is required"),
-});
-
-const formSchema = z.object({
-  company: z.object({
-    name: z.string().min(1, "Company name is required"),
-    website: z.string().url("Valid website URL is required"),
-    location: z.string().min(1, "Location is required"),
-    oneLiner: z.string().min(1, "One-liner is required"),
-    stage: z.string().min(1, "Stage is required"),
-    whatDoYouDo: z.string().min(1, "Description is required"),
-    whyNow: z.string().min(1, "Why now explanation is required"),
-  }),
-  team: z.object({
-    founders: z.array(founderSchema).min(1, "At least one founder is required"),
-    isFullTime: z.boolean(),
-    howLongWorked: z.string().min(1, "Work duration is required"),
-    relevantExperience: z.string().min(1, "Relevant experience is required"),
-  }),
-  product: z.object({
-    description: z.string().min(1, "Product description is required"),
-    demoUrl: z.string().url("Valid demo URL is required").or(z.literal("")),
-    defensibility: z.string().min(1, "Defensibility explanation is required"),
-    videoUrl: z.string().url("Valid video URL is required").or(z.literal("")),
-  }),
-  market: z.object({
-    customer: z.string().min(1, "Customer description is required"),
-    competitors: z.string().min(1, "Competitor analysis is required"),
-    differentiation: z.string().min(1, "Differentiation is required"),
-    gtm: z.string().min(1, "Go-to-market strategy is required"),
-    tam: z.string(),
-    sam: z.string(),
-    som: z.string(),
-  }),
-  traction: z.object({
-    isLaunched: z.string().min(1, "Launch status is required"),
-    launchDate: z.string(),
-    mrr: z.string(),
-    growth: z.string(),
-    activeUsersCount: z.string(),
-    pilots: z.string(),
-    kpis: z.string(),
-  }),
-  documents: z.object({
-    pitchDeck: z.array(fileRefSchema).min(1, "Pitch deck is required"),
-    other: z.array(fileRefSchema),
-  }),
-});
-
-type FormData = z.infer<typeof formSchema>;
+import { FormData, formSchema, Founder } from "@/lib/types";
 
 const defaultValues: FormData = {
   company: {

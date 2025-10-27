@@ -5,6 +5,7 @@ const fileRef = v.object({
   name: v.string(),
   size: v.number(),
   storageId: v.optional(v.id("_storage")),
+  mediaType: v.optional(v.string()),
 });
 
 const founder = v.object({
@@ -141,7 +142,6 @@ export default defineSchema({
   // Table to track analysis job status and progress
   analysisJobs: defineTable({
     companyId: v.id("founderApplications"),
-    jobType: v.literal("multi_agent"),
     status: v.union(
       v.literal("queued"),
       v.literal("running"),
@@ -157,7 +157,6 @@ export default defineSchema({
     completedAt: v.optional(v.number()),
     error: v.optional(v.string()),
   })
-    .index("by_companyId_jobType", ["companyId", "jobType"])
     .index("by_companyId_createdAt", ["companyId", "createdAt"])
     .index("by_status_createdAt", ["status", "createdAt"]),
 

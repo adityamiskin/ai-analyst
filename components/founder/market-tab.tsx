@@ -11,8 +11,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { UseFormReturn } from "react-hook-form";
-
-export type MarketTabForm = UseFormReturn<any>;
+import type { FormData, MarketTabForm } from "@/lib/types";
 
 export function MarketTab({ form }: { form: MarketTabForm }) {
   return (

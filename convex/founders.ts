@@ -1,7 +1,7 @@
-import { mutation, query, action } from "./_generated/server";
+import { mutation, query, action, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
-import { api } from "./_generated/api";
+import { Doc, Id } from "./_generated/dataModel";
+import { api, internal } from "./_generated/api";
 import { google } from "@ai-sdk/google";
 import { generateObject } from "ai";
 import { z } from "zod";
@@ -120,10 +120,21 @@ export const updateApplication = mutation({
   },
 });
 
+export const getApplicationById = internalQuery({
+  args: { id: v.id("founderApplications") },
+  handler: async (ctx, args) => {
+    const application = await ctx.db.get(args.id);
+    if (!application) {
+      throw new Error("Application not found");
+    }
+    return application;
+  },
+});
+
 export const getApplication = query({
   args: { id: v.id("founderApplications") },
   handler: async (ctx, { id }) => {
-    return await ctx.db.get(id);
+    return await ctx.runQuery(internal.founders.getApplicationById, { id });
   },
 });
 
@@ -232,9 +243,6 @@ export const listAllApplications = query({
         location: app.company.location,
         oneLiner: app.company.oneLiner,
         stage: app.company.stage,
-      },
-      team: {
-        founders: app.team.founders,
       },
       traction: {
         mrr: app.traction.mrr,
@@ -465,11 +473,11 @@ export const getCompanyDocuments = query({
 
     // Extract documents from pitchDeck and other arrays
     if (application.documents.pitchDeck) {
-      application.documents.pitchDeck.forEach((doc: any) => {
+      application.documents.pitchDeck.forEach((doc) => {
         if (doc.storageId) {
           documents.push({
             storageId: doc.storageId,
-            fileName: doc.fileName || "pitch_deck.pdf",
+            fileName: doc.name || "pitch_deck.pdf",
             mediaType: doc.mediaType || "application/pdf",
           });
         }
@@ -477,11 +485,11 @@ export const getCompanyDocuments = query({
     }
 
     if (application.documents.other) {
-      application.documents.other.forEach((doc: any) => {
+      application.documents.other.forEach((doc) => {
         if (doc.storageId) {
           documents.push({
             storageId: doc.storageId,
-            fileName: doc.fileName || "document.pdf",
+            fileName: doc.name || "document.pdf",
             mediaType: doc.mediaType || "application/pdf",
           });
         }

@@ -14,9 +14,8 @@ import {
 } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
 import type { UseFormReturn } from "react-hook-form";
+import type { FormData, TeamTabForm } from "@/lib/types";
 import { Trash2 } from "lucide-react";
-
-export type TeamTabForm = UseFormReturn<any>;
 
 export function TeamTab({
   form,

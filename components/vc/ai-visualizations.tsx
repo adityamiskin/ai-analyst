@@ -34,37 +34,15 @@ import {
 } from "recharts";
 import { api } from "@/convex/_generated/api";
 import { useAction } from "convex/react";
-import { CompanySnapshot } from "./snapshot";
-
-// Define CompanyWithId type locally
-export type CompanyWithId = CompanySnapshot & {
-  id: string;
-  logo?: string;
-  description: string;
-};
+import type {
+  CompanyWithId,
+  Visualization,
+  CompanySnapshot,
+} from "@/lib/types";
 import { Loader2, TrendingUp, BarChart3 } from "lucide-react";
 
-type VisualizationData = Record<string, any>[];
-
-type Visualization = {
-  type: "bar" | "line" | "area" | "pie" | "radar" | "scatter" | "composed";
-  title: string;
-  description: string;
-  data: VisualizationData;
-  config: {
-    xAxis?: string;
-    yAxis?: string;
-    xAxisLabel?: string;
-    yAxisLabel?: string;
-    colors?: string[];
-    showLegend?: boolean;
-    showTooltip?: boolean;
-  };
-  insights: string[];
-};
-
 interface AIVisualizationsProps {
-  company: CompanyWithId | CompanySnapshot;
+  company: CompanySnapshot | CompanyWithId;
 }
 
 const COLORS = [

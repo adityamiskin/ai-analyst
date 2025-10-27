@@ -18,26 +18,7 @@ import {
 } from "@/components/ai-elements/tool";
 import { Activity, CheckCircle, XCircle, Wrench, Play } from "lucide-react";
 import React from "react";
-
-interface ActivityItem {
-  _id: string;
-  agentId: string;
-  agentName: string;
-  activityType:
-    | "tool_call"
-    | "tool_result"
-    | "agent_start"
-    | "agent_complete"
-    | "agent_error";
-  toolName?: string;
-  toolInput?: any;
-  toolOutput?: any;
-  errorMessage?: string;
-  executionTimeMs?: number;
-  status: "pending" | "running" | "completed" | "error";
-  timestamp: number;
-  metadata?: any;
-}
+import type { ActivityItem } from "@/lib/types";
 
 interface RecentActivityProps {
   recentActivity: ActivityItem[];
@@ -229,7 +210,7 @@ export function RecentActivity({
                           <Tool defaultOpen={false} className="w-full">
                             <ToolHeader
                               type={`tool-${toolCall.toolName || "unknown"}`}
-                              state={status as any}
+                              state={status}
                               className="w-full"
                             />
                             <ToolContent>

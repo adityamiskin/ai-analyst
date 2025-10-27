@@ -3,8 +3,8 @@
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id, Doc } from "@/convex/_generated/dataModel";
-import Benchmarks from "@/components/vc/benchmarks";
+import type { Id } from "@/convex/_generated/dataModel";
+import AIVisualizations from "@/components/vc/ai-visualizations";
 import Risks from "@/components/vc/risks";
 import { SourcesEvidence } from "@/components/vc/vc-sources-evidence";
 import AgentActivityDashboard from "@/components/vc/agent-activity-dashboard";
@@ -20,26 +20,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useState } from "react";
 import { Response } from "@/components/ai-elements/response";
-
-// Type definitions using Convex Doc types
-type MultiAgentAnalysis = Doc<"multiAgentAnalyses">;
-
-// Extract types from the multi-agent analysis snapshot
-type MultiAgentSnapshot = MultiAgentAnalysis["snapshot"];
-type AgentAnalysis = MultiAgentSnapshot["agentAnalyses"][0];
-type Risk = AgentAnalysis["risks"][0];
-type InvestmentRecommendation = MultiAgentSnapshot["investmentRecommendation"];
+import type {
+  MultiAgentSnapshot,
+  AgentAnalysisResult,
+  Risk,
+} from "@/lib/types";
 
 export default function AnalysisContainer() {
   const params = useParams<{ id?: string }>();
-  const companyId = params?.id ?? undefined;
+  const companyId = params?.id as Id<"founderApplications"> | undefined;
 
   // Multi-agent analysis
   const latestMultiAgent = useQuery(
     api.multi_agent_analysis.getLatestMultiAgentSnapshot,
-    companyId ? { companyId: companyId as Id<"founderApplications"> } : "skip",
+    companyId ? { companyId: companyId } : "skip",
   );
   const startMultiAgent = useMutation(
     api.multi_agent_analysis.startMultiAgentAnalysis,
@@ -48,8 +43,7 @@ export default function AnalysisContainer() {
     api.multi_agent_analysis.getJobStatus,
     companyId
       ? {
-          companyId: companyId as Id<"founderApplications">,
-          jobType: "multi_agent",
+          companyId: companyId,
         }
       : "skip",
   );
@@ -58,7 +52,7 @@ export default function AnalysisContainer() {
     if (!companyId) return;
     try {
       await startMultiAgent({
-        companyId: companyId as Id<"founderApplications">,
+        companyId: companyId,
       });
     } catch (error) {
       console.error("Failed to start multi-agent analysis:", error);
@@ -79,73 +73,80 @@ export default function AnalysisContainer() {
   const isLoadingMultiAgent = latestMultiAgent === undefined && !!companyId;
   const hasNoMultiAgentData = latestMultiAgent === null;
 
-  const getRecommendationColor = (recommendation: InvestmentRecommendation) => {
+  const getRecommendation = (
+    recommendation: MultiAgentSnapshot["investmentRecommendation"],
+  ) => {
     switch (recommendation) {
       case "strong_buy":
-        return "bg-green-100 text-green-800 border-green-200";
+        return {
+          color: "bg-green-100 text-green-800 border-green-200",
+          label: "Strong Buy",
+        };
       case "buy":
-        return "bg-green-50 text-green-700 border-green-100";
+        return {
+          color: "bg-green-50 text-green-700 border-green-100",
+          label: "Buy",
+        };
       case "hold":
-        return "bg-yellow-50 text-yellow-700 border-yellow-100";
+        return {
+          color: "bg-yellow-50 text-yellow-700 border-yellow-100",
+          label: "Hold",
+        };
       case "sell":
-        return "bg-red-50 text-red-700 border-red-100";
+        return {
+          color: "bg-red-50 text-red-700 border-red-100",
+          label: "Sell",
+        };
       case "strong_sell":
-        return "bg-red-100 text-red-800 border-red-200";
+        return {
+          color: "bg-red-100 text-red-800 border-red-200",
+          label: "Strong Sell",
+        };
       default:
-        return "bg-gray-50 text-gray-700 border-gray-100";
+        return {
+          color: "bg-gray-50 text-gray-700 border-gray-100",
+          label: recommendation,
+        };
     }
   };
 
-  const getRecommendationLabel = (recommendation: InvestmentRecommendation) => {
-    switch (recommendation) {
-      case "strong_buy":
-        return "Strong Buy";
-      case "buy":
-        return "Buy";
-      case "hold":
-        return "Hold";
-      case "sell":
-        return "Sell";
-      case "strong_sell":
-        return "Strong Sell";
-      default:
-        return recommendation;
-    }
-  };
-
-  const getJobStatusColor = (status?: string) => {
+  const getJobStatus = (status?: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-100 text-green-800 border-green-200";
+        return {
+          color: "bg-green-100 text-green-800 border-green-200",
+          label: "Completed",
+        };
       case "failed":
-        return "bg-red-100 text-red-800 border-red-200";
+        return {
+          color: "bg-red-100 text-red-800 border-red-200",
+          label: "Failed",
+        };
       case "running":
+        return {
+          color: "bg-blue-100 text-blue-800 border-blue-200",
+          label: "Running",
+        };
       case "ingesting":
+        return {
+          color: "bg-blue-100 text-blue-800 border-blue-200",
+          label: "Ingesting Data",
+        };
       case "analyzing":
-        return "bg-blue-100 text-blue-800 border-blue-200";
+        return {
+          color: "bg-blue-100 text-blue-800 border-blue-200",
+          label: "Analyzing",
+        };
       case "queued":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200";
+        return {
+          color: "bg-yellow-100 text-yellow-800 border-yellow-200",
+          label: "Queued",
+        };
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200";
-    }
-  };
-
-  const getJobStatusLabel = (status?: string) => {
-    switch (status) {
-      case "queued":
-        return "Queued";
-      case "running":
-        return "Running";
-      case "ingesting":
-        return "Ingesting Data";
-      case "analyzing":
-        return "Analyzing";
-      case "completed":
-        return "Completed";
-      case "failed":
-        return "Failed";
-      default:
-        return "Unknown";
+        return {
+          color: "bg-gray-100 text-gray-800 border-gray-200",
+          label: "Unknown",
+        };
     }
   };
 
@@ -199,20 +200,24 @@ export default function AnalysisContainer() {
                   Multi-Agent Analysis
                   {multiAgentSnapshot && (
                     <Badge
-                      className={getRecommendationColor(
-                        multiAgentSnapshot.investmentRecommendation,
-                      )}
+                      className={
+                        getRecommendation(
+                          multiAgentSnapshot.investmentRecommendation,
+                        ).color
+                      }
                     >
-                      {getRecommendationLabel(
-                        multiAgentSnapshot.investmentRecommendation,
-                      )}
+                      {
+                        getRecommendation(
+                          multiAgentSnapshot.investmentRecommendation,
+                        ).label
+                      }
                     </Badge>
                   )}
                   {multiAgentJobStatus && (
                     <Badge
-                      className={getJobStatusColor(multiAgentJobStatus.status)}
+                      className={getJobStatus(multiAgentJobStatus.status).color}
                     >
-                      {getJobStatusLabel(multiAgentJobStatus.status)}
+                      {getJobStatus(multiAgentJobStatus.status).label}
                     </Badge>
                   )}
                 </div>
@@ -227,9 +232,9 @@ export default function AnalysisContainer() {
                   Agent Activity
                   {multiAgentJobStatus && (
                     <Badge
-                      className={getJobStatusColor(multiAgentJobStatus.status)}
+                      className={getJobStatus(multiAgentJobStatus.status).color}
                     >
-                      {getJobStatusLabel(multiAgentJobStatus.status)}
+                      {getJobStatus(multiAgentJobStatus.status).label}
                     </Badge>
                   )}
                 </div>
@@ -252,9 +257,9 @@ export default function AnalysisContainer() {
                       Analysis in Progress
                     </h3>
                     <Badge
-                      className={getJobStatusColor(multiAgentJobStatus.status)}
+                      className={getJobStatus(multiAgentJobStatus.status).color}
                     >
-                      {getJobStatusLabel(multiAgentJobStatus.status)}
+                      {getJobStatus(multiAgentJobStatus.status).label}
                     </Badge>
                   </div>
                   <Progress
@@ -283,13 +288,17 @@ export default function AnalysisContainer() {
                     <CardTitle className="flex items-center gap-3">
                       Investment Recommendation
                       <Badge
-                        className={getRecommendationColor(
-                          multiAgentSnapshot.investmentRecommendation,
-                        )}
+                        className={
+                          getRecommendation(
+                            multiAgentSnapshot.investmentRecommendation,
+                          ).color
+                        }
                       >
-                        {getRecommendationLabel(
-                          multiAgentSnapshot.investmentRecommendation,
-                        )}
+                        {
+                          getRecommendation(
+                            multiAgentSnapshot.investmentRecommendation,
+                          ).label
+                        }
                       </Badge>
                     </CardTitle>
                     <CardDescription>
@@ -319,7 +328,7 @@ export default function AnalysisContainer() {
                 {/* Individual Agent Analyses */}
                 <div className="grid gap-6">
                   {multiAgentSnapshot.agentAnalyses.map(
-                    (agentAnalysis: AgentAnalysis) => (
+                    (agentAnalysis: AgentAnalysisResult) => (
                       <Card key={agentAnalysis.agentId}>
                         <CardHeader>
                           <CardTitle className="flex items-center justify-between">
@@ -428,7 +437,7 @@ export default function AnalysisContainer() {
 
                 {/* Consolidated Metrics and Risks */}
                 <section id="consolidated-metrics" className="scroll-mt-24">
-                  <Benchmarks
+                  <AIVisualizations
                     company={{
                       ...multiAgentSnapshot,
                       summary: multiAgentSnapshot.overallSummary,

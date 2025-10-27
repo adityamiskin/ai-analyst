@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   Sidebar,
@@ -33,29 +33,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
-
-type SidebarApplication = {
-  _id: Id<"founderApplications">;
-  company: {
-    name: string;
-    location: string;
-    oneLiner: string;
-    stage: string;
-  };
-  team: {
-    founders: Array<{
-      name: string;
-      email: string;
-      designation: string;
-    }>;
-  };
-  traction: {
-    mrr: string;
-  };
-  createdAt: number;
-  updatedAt: number;
-  pinned?: boolean;
-};
+import { useFilteredApplications } from "@/hooks/use-filtered-applications";
+import { SidebarApplication } from "@/lib/types";
 
 export function CompanySidebar() {
   const params = useParams<{ id?: string }>();
@@ -68,52 +47,7 @@ export function CompanySidebar() {
   const togglePinCompany = useMutation(api.founders.togglePinCompany);
 
   const { pinnedCompanies: pinnedApps, unpinnedCompanies: unpinnedApps } =
-    useMemo(() => {
-      const list = applications ?? [];
-      const pinned: SidebarApplication[] = [];
-      const unpinned: SidebarApplication[] = [];
-
-      // Separate pinned and unpinned companies
-      list.forEach((app: SidebarApplication) => {
-        if (app.pinned) {
-          pinned.push(app);
-        } else {
-          unpinned.push(app);
-        }
-      });
-
-      // Apply search filter if there's a query
-      if (searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        const filterApps = (apps: SidebarApplication[]) =>
-          apps.filter((app: SidebarApplication) => {
-            const companyName = app.company?.name?.toLowerCase?.() ?? "";
-            const stage = app.company?.stage?.toLowerCase?.() ?? "";
-            const oneLiner = app.company?.oneLiner?.toLowerCase?.() ?? "";
-            const founders = Array.isArray(app.team?.founders)
-              ? app.team.founders.map((f) =>
-                  `${f.name} ${f.email}`.toLowerCase(),
-                )
-              : [];
-            return (
-              companyName.includes(query) ||
-              stage.includes(query) ||
-              oneLiner.includes(query) ||
-              founders.some((t: string) => t.includes(query))
-            );
-          });
-
-        return {
-          pinnedCompanies: filterApps(pinned),
-          unpinnedCompanies: filterApps(unpinned),
-        };
-      }
-
-      return {
-        pinnedCompanies: pinned,
-        unpinnedCompanies: unpinned,
-      };
-    }, [applications, searchQuery]);
+    useFilteredApplications(applications, searchQuery);
 
   const clearSearch = () => {
     setSearchQuery("");
@@ -133,7 +67,6 @@ export function CompanySidebar() {
   ) => {
     try {
       await deleteApplication({ id: companyId });
-      // If we're currently viewing the deleted company, redirect to home
       if (currentCompanyId === companyId) {
         router.push("/vc");
       }

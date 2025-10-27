@@ -1,18 +1,21 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { companyRag } from "./ai";
-import { api } from "./_generated/api";
+import { internal } from "./_generated/api";
+import { Doc } from "./_generated/dataModel";
 
 // Helper function to build section-specific text (optional sections => include all)
-export function buildSectionText(app: any, sections?: string[]): string {
+export function buildSectionText(
+  app: Doc<"founderApplications">,
+  sections?: string[],
+): string {
   const parts: string[] = [];
-  if (!app) return "";
 
-  const c = app.company ?? {};
-  const t = app.team ?? {};
-  const p = app.product ?? {};
-  const m = app.market ?? {};
-  const tr = app.traction ?? {};
+  const c = app.company;
+  const t = app.team;
+  const p = app.product;
+  const m = app.market;
+  const tr = app.traction;
   const includeAll = !sections || sections.length === 0;
 
   if (includeAll || sections.includes("company")) {
@@ -30,7 +33,7 @@ export function buildSectionText(app: any, sections?: string[]): string {
     parts.push(`\n# Team`);
     parts.push(
       `Founders: ${(t.founders ?? [])
-        .map((f: any) => `${f.name} <${f.email}> (${f.designation})`)
+        .map((f) => `${f.name} <${f.email}> (${f.designation})`)
         .join("; ")}`,
     );
     parts.push(`Full-time: ${t.isFullTime}`);
@@ -73,7 +76,7 @@ export function buildSectionText(app: any, sections?: string[]): string {
 export const ingestCompanyApplication = action({
   args: { companyId: v.id("founderApplications") },
   handler: async (ctx, { companyId }) => {
-    const app = await ctx.runQuery(api.founders.getApplication, {
+    const app = await ctx.runQuery(internal.founders.getApplicationById, {
       id: companyId,
     });
     if (!app) throw new Error("Application not found");

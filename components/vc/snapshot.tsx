@@ -10,39 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import ProvenanceBadge from "./provenance-badge";
 import TrustChecks from "./trust-checks";
-
-export type Source = {
-  title: string;
-  url: string;
-  date: string;
-  confidence: number;
-  extractedFacts: string[];
-};
-
-export type Metric = {
-  key: string;
-  label: string;
-  value: number;
-  unit?: string;
-  peerMedian?: number;
-  sources: Source[];
-  checks: { label: string; status: "pass" | "warn"; note?: string }[];
-};
-
-export type CompanySnapshot = {
-  company: string;
-  sector: string;
-  stage: string;
-  ask: string;
-  summary: string;
-  lastUpdated: string;
-  metrics: Metric[];
-  risks: {
-    severity: "low" | "med" | "high";
-    label: string;
-    evidence: string;
-  }[];
-};
+import type { CompanySnapshot } from "@/lib/types";
 
 interface SnapshotProps {
   company: CompanySnapshot;

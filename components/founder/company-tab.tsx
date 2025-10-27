@@ -18,8 +18,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import type { UseFormReturn } from "react-hook-form";
-
-export type CompanyTabForm = UseFormReturn<any>;
+import type { FormData, CompanyTabForm } from "@/lib/types";
 
 export function CompanyTab({ form }: { form: CompanyTabForm }) {
   return (

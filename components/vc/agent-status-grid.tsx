@@ -16,21 +16,10 @@ import {
   XCircle,
   AlertCircle,
 } from "lucide-react";
-
-interface AgentStatus {
-  agentId: string;
-  agentName: string;
-  status: string;
-  startTime: number | null;
-  endTime: number | null;
-  toolCalls: number;
-  toolResults: number;
-  errors: number;
-  lastActivity: number;
-}
+import type { AgentStatusItem } from "@/lib/types";
 
 interface AgentStatusGridProps {
-  agentsStatus: AgentStatus[];
+  agentsStatus: AgentStatusItem[];
 }
 
 export function AgentStatusGrid({ agentsStatus }: AgentStatusGridProps) {
@@ -83,13 +72,13 @@ export function AgentStatusGrid({ agentsStatus }: AgentStatusGridProps) {
     }
   };
 
-  const getExecutionTime = (agent: AgentStatus) => {
+  const getExecutionTime = (agent: AgentStatusItem) => {
     if (!agent.startTime) return null;
     const endTime = agent.endTime || Date.now();
     return Math.round((endTime - agent.startTime) / 1000);
   };
 
-  const getProgress = (agent: AgentStatus) => {
+  const getProgress = (agent: AgentStatusItem) => {
     if (agent.status === "completed") return 100;
     if (agent.status === "error") return 100;
     if (agent.status === "pending") return 0;
