@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import AIVisualizations from './ai-visualizations';
-import { CompanyWithId, CompanySnapshot } from '@/lib/mock';
+import AIVisualizations, { CompanyWithId } from "./ai-visualizations";
+import { CompanySnapshot } from "./snapshot";
 
 interface BenchmarksProps {
-	company?: CompanyWithId | CompanySnapshot;
+  company: CompanyWithId | CompanySnapshot;
 }
 
 export default function Benchmarks({ company }: BenchmarksProps) {
-	return <AIVisualizations company={company} />;
+  return <AIVisualizations company={company} />;
 }

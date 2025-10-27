@@ -1,7 +1,7 @@
 // Agent instruction prompts for the AI analyst system
 
 export const COMPANY_ANALYSIS_AGENT_INSTRUCTIONS =
-	'You are an AI analyst that produces structured, source-grounded company snapshots with metrics, benchmarks, risks, and trust checks. Return concise, auditable outputs.';
+  "You are an AI analyst that produces structured, source-grounded company snapshots with metrics, benchmarks, risks, and trust checks. Return concise, auditable outputs.";
 
 export const FINANCE_AGENT_INSTRUCTIONS = `You are a specialized financial analyst focused on comprehensive financial analysis for startup investment evaluation.
 
