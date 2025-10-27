@@ -28,7 +28,7 @@ import { DataModel, Id } from "./_generated/dataModel";
 
 const agentAnalysisSchema = z.object({
   agentId: z
-    .string()
+    .enum(["finance", "evaluation", "competitor", "market", "technical"])
     .describe(
       "Unique identifier for the agent type (e.g., 'finance', 'evaluation', 'competitor', 'market', 'technical')"
     ),
@@ -959,44 +959,6 @@ Technical: ${technicalAnalysis.summary}`;
         });
       } catch (error) {
         console.error("Orchestration failed:", error);
-        // Create a fallback snapshot with the individual agent results
-        const fallbackSnapshot = {
-          company: "Unknown Company",
-          sector: "Unknown",
-          stage: "Unknown",
-          ask: "Unknown",
-          overallSummary:
-            "Multi-agent analysis encountered errors. Individual agent results may be incomplete.",
-          overallConfidence: 0.1,
-          lastUpdated: today,
-          agentAnalyses: [
-            financeAnalysis,
-            evaluationAnalysis,
-            competitorAnalysis,
-            marketAnalysis,
-            technicalAnalysis,
-          ],
-          consolidatedMetrics: [],
-          consolidatedRisks: [
-            {
-              severity: "high" as const,
-              label: "Analysis Error",
-              evidence: "Orchestration failed - unable to synthesize results",
-            },
-          ],
-          investmentRecommendation: "hold" as const,
-          recommendationReasoning:
-            "Unable to complete full analysis due to errors. Please retry.",
-        };
-
-        if (!fallbackSnapshot) {
-          throw new Error("No fallback snapshot object");
-        }
-
-        await ctx.runMutation(api.multi_agent_analysis.saveMultiAgentSnapshot, {
-          companyId,
-          snapshot: fallbackSnapshot,
-        });
 
         // Mark job as completed with partial results
         await ctx.runMutation(internal.multi_agent_analysis.updateJobStatus, {
@@ -1034,7 +996,13 @@ export const saveMultiAgentSnapshot = mutation({
       lastUpdated: v.string(),
       agentAnalyses: v.array(
         v.object({
-          agentId: v.string(),
+          agentId: v.union(
+            v.literal("finance"),
+            v.literal("technical"),
+            v.literal("market"),
+            v.literal("evaluation"),
+            v.literal("competitor")
+          ),
           agentName: v.string(),
           summary: v.string(),
           confidence: v.number(),
