@@ -4,12 +4,9 @@ import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { api } from '@/convex/_generated/api';
 import type { Id, Doc } from '@/convex/_generated/dataModel';
-import Snapshot from '@/components/vc/snapshot';
 import Benchmarks from '@/components/vc/benchmarks';
-import FrameworksScorecard from '@/components/vc/frameworks-scorecard';
 import Risks from '@/components/vc/risks';
 import { SourcesEvidence } from '@/components/vc/vc-sources-evidence';
-import { ReportPreview } from '@/components/vc/report-preview';
 import AgentActivityDashboard from '@/components/vc/agent-activity-dashboard';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -27,7 +24,6 @@ import { useState } from 'react';
 import { Response } from '@/components/ai-elements/response';
 
 // Type definitions using Convex Doc types
-type CompanyAnalysis = Doc<'companyAnalyses'>;
 type MultiAgentAnalysis = Doc<'multiAgentAnalyses'>;
 
 // Extract types from the multi-agent analysis snapshot
@@ -39,22 +35,6 @@ type InvestmentRecommendation = MultiAgentSnapshot['investmentRecommendation'];
 export default function AnalysisContainer() {
 	const params = useParams<{ id?: string }>();
 	const companyId = params?.id ?? undefined;
-
-	// Single agent analysis
-	const latest = useQuery(
-		api.analysis.getLatestSnapshot,
-		companyId ? { companyId: companyId as Id<'founderApplications'> } : 'skip',
-	);
-	const start = useMutation(api.analysis.startAnalysis);
-	const singleAgentJobStatus = useQuery(
-		api.analysis.getJobStatus,
-		companyId
-			? {
-					companyId: companyId as Id<'founderApplications'>,
-					jobType: 'single_agent',
-			  }
-			: 'skip',
-	);
 
 	// Multi-agent analysis
 	const latestMultiAgent = useQuery(
@@ -74,15 +54,6 @@ export default function AnalysisContainer() {
 			: 'skip',
 	);
 
-	async function onRun() {
-		if (!companyId) return;
-		try {
-			await start({ companyId: companyId as Id<'founderApplications'> });
-		} catch (error) {
-			console.error('Failed to start analysis:', error);
-		}
-	}
-
 	async function onRunMultiAgent() {
 		if (!companyId) return;
 		try {
@@ -94,13 +65,7 @@ export default function AnalysisContainer() {
 		}
 	}
 
-	// Determine if analyses are running based on job status
-	const isSingleAgentRunning =
-		(singleAgentJobStatus &&
-			['queued', 'running', 'ingesting', 'analyzing'].includes(
-				singleAgentJobStatus.status,
-			)) ||
-		false;
+	// Determine if analysis is running
 	const isMultiAgentRunning =
 		(multiAgentJobStatus &&
 			['queued', 'running', 'ingesting', 'analyzing'].includes(
@@ -108,13 +73,10 @@ export default function AnalysisContainer() {
 			)) ||
 		false;
 
-	const snapshot = latest ? latest.snapshot : undefined;
 	const multiAgentSnapshot = latestMultiAgent
 		? latestMultiAgent.snapshot
 		: undefined;
-	const isLoading = latest === undefined && !!companyId;
 	const isLoadingMultiAgent = latestMultiAgent === undefined && !!companyId;
-	const hasNoData = latest === null;
 	const hasNoMultiAgentData = latestMultiAgent === null;
 
 	const getRecommendationColor = (recommendation: InvestmentRecommendation) => {
@@ -194,22 +156,24 @@ export default function AnalysisContainer() {
 					AI Analyst Report
 				</h2>
 				<div className='flex gap-2'>
-					<Button
-						onClick={onRun}
-						disabled={!companyId || isSingleAgentRunning}
-						variant='outline'>
-						{isSingleAgentRunning
-							? singleAgentJobStatus?.message || 'Running…'
-							: 'Single Agent'}
-					</Button>
-					<Button
-						onClick={onRunMultiAgent}
-						disabled={!companyId || isMultiAgentRunning}
-						className='bg-blue-600 hover:bg-blue-700'>
-						{isMultiAgentRunning
-							? multiAgentJobStatus?.message || 'Running Multi-Agent…'
-							: 'Multi-Agent Analysis'}
-					</Button>
+					{!multiAgentSnapshot && !isMultiAgentRunning && (
+						<div className='text-sm text-muted-foreground'>
+							Analysis will start automatically when the application is submitted.
+						</div>
+					)}
+					{(multiAgentSnapshot || isMultiAgentRunning) && (
+						<Button
+							onClick={onRunMultiAgent}
+							disabled={!companyId || isMultiAgentRunning}
+							variant={multiAgentSnapshot ? 'outline' : 'default'}
+							className={multiAgentSnapshot ? '' : 'bg-blue-600 hover:bg-blue-700'}>
+							{isMultiAgentRunning
+								? multiAgentJobStatus?.message || 'Running Multi-Agent…'
+								: multiAgentSnapshot
+									? 'Re-run Analysis'
+									: 'Multi-Agent Analysis'}
+						</Button>
+					)}
 				</div>
 			</div>
 
@@ -221,7 +185,7 @@ export default function AnalysisContainer() {
 
 			{companyId && (
 				<Tabs defaultValue='multi-agent' className='w-full'>
-					<TabsList className='grid w-full grid-cols-3'>
+					<TabsList className='grid w-full grid-cols-2'>
 						<TabsTrigger
 							value='multi-agent'
 							className='flex items-center gap-2'>
@@ -242,23 +206,6 @@ export default function AnalysisContainer() {
 										<Badge
 											className={getJobStatusColor(multiAgentJobStatus.status)}>
 											{getJobStatusLabel(multiAgentJobStatus.status)}
-										</Badge>
-									)}
-								</div>
-							</div>
-						</TabsTrigger>
-						<TabsTrigger
-							value='single-agent'
-							className='flex items-center gap-2'>
-							<div className='flex flex-col items-start gap-1'>
-								<div className='flex items-center gap-2'>
-									Single Agent Analysis
-									{singleAgentJobStatus && (
-										<Badge
-											className={getJobStatusColor(
-												singleAgentJobStatus.status,
-											)}>
-											{getJobStatusLabel(singleAgentJobStatus.status)}
 										</Badge>
 									)}
 								</div>
@@ -496,74 +443,6 @@ export default function AnalysisContainer() {
 											risks: multiAgentSnapshot.consolidatedRisks,
 										}}
 									/>
-								</section>
-							</>
-						)}
-					</TabsContent>
-
-					<TabsContent value='single-agent' className='mt-6'>
-						{isLoading && (
-							<div className='text-sm text-muted-foreground'>
-								Loading single agent analysis…
-							</div>
-						)}
-
-						{isSingleAgentRunning && singleAgentJobStatus && (
-							<Card className='mb-6'>
-								<CardContent className='pt-6'>
-									<div className='flex items-center justify-between mb-4'>
-										<h3 className='text-lg font-semibold'>
-											Analysis in Progress
-										</h3>
-										<Badge
-											className={getJobStatusColor(
-												singleAgentJobStatus.status,
-											)}>
-											{getJobStatusLabel(singleAgentJobStatus.status)}
-										</Badge>
-									</div>
-									<Progress
-										value={singleAgentJobStatus.progress}
-										className='mb-2'
-									/>
-									<p className='text-sm text-muted-foreground'>
-										{singleAgentJobStatus.message}
-									</p>
-								</CardContent>
-							</Card>
-						)}
-
-						{hasNoData && !isSingleAgentRunning && (
-							<div className='rounded-md border p-4 text-sm'>
-								No single agent analysis found for this company. Click "Single
-								Agent" to generate one.
-							</div>
-						)}
-
-						{snapshot && (
-							<>
-								<section id='snapshot' className='scroll-mt-24'>
-									<Snapshot company={snapshot} />
-								</section>
-								<Separator className='my-8' />
-								<section id='benchmarks' className='scroll-mt-24'>
-									<Benchmarks company={snapshot} />
-								</section>
-								<Separator className='my-8' />
-								<section id='frameworks' className='scroll-mt-24'>
-									<FrameworksScorecard company={snapshot} />
-								</section>
-								<Separator className='my-8' />
-								<section id='risks' className='scroll-mt-24'>
-									<Risks company={snapshot} />
-								</section>
-								<Separator className='my-8' />
-								<section id='sources' className='scroll-mt-24'>
-									<SourcesEvidence company={snapshot} />
-								</section>
-								<Separator className='my-8' />
-								<section id='report' className='scroll-mt-24'>
-									<ReportPreview company={snapshot} />
 								</section>
 							</>
 						)}

@@ -18,6 +18,7 @@ import {
 	createOrchestrationAgent,
 } from './ai';
 import { api, internal } from './_generated/api';
+import { buildSectionText } from './analysis';
 import { groq } from '@ai-sdk/groq';
 import { Thread } from '@convex-dev/agent';
 import { openai } from '@ai-sdk/openai';
@@ -333,33 +334,6 @@ async function generateStructuredResult(
 	});
 
 	return structuredResult.object;
-}
-
-function buildBaselineContext(app: any): string {
-	const parts: string[] = [];
-	if (!app) return '';
-	const c = app.company ?? {};
-	const t = app.team ?? {};
-
-	parts.push(`# Company Overview`);
-	parts.push(`Name: ${c.name}`);
-	parts.push(`Website: ${c.website}`);
-	parts.push(`Location: ${c.location}`);
-	parts.push(`Stage: ${c.stage}`);
-	parts.push(`One-liner: ${c.oneLiner}`);
-	parts.push(`What do you do: ${c.whatDoYouDo}`);
-	parts.push(`Why now: ${c.whyNow}`);
-
-	parts.push(`\n# Team Basics`);
-	parts.push(
-		`Founders: ${(t.founders ?? [])
-			.map((f: any) => `${f.name} (${f.designation})`)
-			.join('; ')}`,
-	);
-	parts.push(`Full-time: ${t.isFullTime}`);
-	parts.push(`How long worked: ${t.howLongWorked}`);
-
-	return parts.filter(Boolean).join('\n');
 }
 
 async function runFinanceAnalysis(
@@ -897,7 +871,7 @@ export const runMultiAgentAnalysis = internalAction({
 			const companyDoc = await ctx.runQuery(api.founders.getApplication, {
 				id: companyId,
 			});
-			const baselineContext = buildBaselineContext(companyDoc);
+			const baselineContext = buildSectionText(companyDoc);
 
 			// Update job status for agent analysis phase
 			await ctx.runMutation(internal.multi_agent_analysis.updateJobStatus, {
@@ -1233,7 +1207,7 @@ export const getLatestMultiAgentSnapshot = query({
 export const getJobStatus = query({
 	args: {
 		companyId: v.id('founderApplications'),
-		jobType: v.union(v.literal('single_agent'), v.literal('multi_agent')),
+		jobType: v.literal('multi_agent'),
 	},
 	handler: async (ctx, { companyId, jobType }) => {
 		const doc = await ctx.db

@@ -165,7 +165,7 @@ export default function YCQuestionnaire() {
 
 			await createApplication({ ...data, primaryEmail });
 
-			toast.success('Application submitted successfully!');
+			toast.success('Application submitted successfully! AI analysis will start automatically.');
 			form.reset(defaultValues);
 		} catch (error) {
 			console.error('❌ Submission error:', error);

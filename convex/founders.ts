@@ -1,9 +1,11 @@
 import { mutation, query, action } from './_generated/server';
 import { v } from 'convex/values';
 import { Id } from './_generated/dataModel';
+import { api } from './_generated/api';
 import { google } from '@ai-sdk/google';
 import { generateObject } from 'ai';
 import { z } from 'zod';
+import { openai } from '@ai-sdk/openai';
 
 // Import fileRef from schema instead of defining locally
 const fileRef = v.object({
@@ -84,6 +86,17 @@ export const createApplication = mutation({
 			createdAt: now,
 			updatedAt: now,
 		});
+
+		// Automatically start multi-agent analysis
+		try {
+			await ctx.runMutation(api.multi_agent_analysis.startMultiAgentAnalysis, {
+				companyId: id,
+			});
+		} catch (error) {
+			console.error('Failed to start automatic analysis:', error);
+			// Don't fail the application creation if analysis fails to start
+		}
+
 		return id;
 	},
 });
@@ -156,6 +169,35 @@ export const deleteApplication = mutation({
 		extractStorageIds(application.documents.pitchDeck);
 		extractStorageIds(application.documents.other);
 
+		// Delete all related analysis data first
+		// Delete agent messages (references companyId and jobId)
+		const agentMessages = await ctx.db
+			.query('agentMessages')
+			.withIndex('by_companyId_jobId', (q) => q.eq('companyId', id))
+			.collect();
+		await Promise.all(agentMessages.map(msg => ctx.db.delete(msg._id)));
+
+		// Delete agent activity (references companyId and jobId)
+		const agentActivities = await ctx.db
+			.query('agentActivity')
+			.withIndex('by_companyId_jobId', (q) => q.eq('companyId', id))
+			.collect();
+		await Promise.all(agentActivities.map(activity => ctx.db.delete(activity._id)));
+
+		// Delete analysis jobs (references companyId)
+		const analysisJobs = await ctx.db
+			.query('analysisJobs')
+			.withIndex('by_companyId_createdAt', (q) => q.eq('companyId', id))
+			.collect();
+		await Promise.all(analysisJobs.map(job => ctx.db.delete(job._id)));
+
+		// Delete multi-agent analyses (references companyId)
+		const analyses = await ctx.db
+			.query('multiAgentAnalyses')
+			.withIndex('by_companyId_createdAt', (q) => q.eq('companyId', id))
+			.collect();
+		await Promise.all(analyses.map(analysis => ctx.db.delete(analysis._id)));
+
 		// Delete all associated files from storage
 		const deletePromises = storageIds.map((storageId) =>
 			ctx.storage.delete(storageId),
@@ -168,7 +210,7 @@ export const deleteApplication = mutation({
 			console.warn('Some files may not have been deleted:', error);
 		}
 
-		// Delete the application record
+		// Finally, delete the application record
 		await ctx.db.delete(id);
 		return true;
 	},
@@ -384,7 +426,7 @@ Return the information in a structured format that can be used to pre-fill form 
 
 		try {
 			const result = await generateObject({
-				model: google('gemini-2.5-pro'),
+				model: google('gemini-flash-latest'),
 				schema: pitchDeckAnalysisSchema,
 				messages: [
 					{
@@ -402,5 +444,48 @@ Return the information in a structured format that can be used to pre-fill form 
 			// Return empty object on error so the form can still function
 			return {};
 		}
+	},
+});
+
+export const getCompanyDocuments = query({
+	args: { companyId: v.id('founderApplications') },
+	handler: async (ctx, args) => {
+		const application = await ctx.db.get(args.companyId);
+		if (!application || !application.documents) {
+			return [];
+		}
+
+		const documents: Array<{
+			storageId: Id<'_storage'>;
+			fileName: string;
+			mediaType: string;
+		}> = [];
+
+		// Extract documents from pitchDeck and other arrays
+		if (application.documents.pitchDeck) {
+			application.documents.pitchDeck.forEach((doc: any) => {
+				if (doc.storageId) {
+					documents.push({
+						storageId: doc.storageId,
+						fileName: doc.fileName || 'pitch_deck.pdf',
+						mediaType: doc.mediaType || 'application/pdf',
+					});
+				}
+			});
+		}
+
+		if (application.documents.other) {
+			application.documents.other.forEach((doc: any) => {
+				if (doc.storageId) {
+					documents.push({
+						storageId: doc.storageId,
+						fileName: doc.fileName || 'document.pdf',
+						mediaType: doc.mediaType || 'application/pdf',
+					});
+				}
+			});
+		}
+
+		return documents;
 	},
 });

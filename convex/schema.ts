@@ -44,17 +44,6 @@ const risk = v.object({
 	evidence: v.string(),
 });
 
-const companySnapshot = v.object({
-	company: v.string(),
-	sector: v.string(),
-	stage: v.string(),
-	ask: v.string(),
-	summary: v.string(),
-	lastUpdated: v.string(),
-	metrics: v.array(metric),
-	risks: v.array(risk),
-});
-
 // Multi-agent analysis structures
 const agentAnalysis = v.object({
 	agentId: v.string(), // 'finance', 'evaluation', 'competitor', 'market', 'technical'
@@ -143,12 +132,6 @@ export default defineSchema({
 		.index('by_primary_email', ['primaryEmail'])
 		.index('by_primary_email_createdAt', ['primaryEmail', 'createdAt']),
 
-	companyAnalyses: defineTable({
-		companyId: v.id('founderApplications'),
-		snapshot: companySnapshot,
-		createdAt: v.number(),
-	}).index('by_companyId_createdAt', ['companyId', 'createdAt']),
-
 	multiAgentAnalyses: defineTable({
 		companyId: v.id('founderApplications'),
 		snapshot: multiAgentSnapshot,
@@ -158,7 +141,7 @@ export default defineSchema({
 	// Table to track analysis job status and progress
 	analysisJobs: defineTable({
 		companyId: v.id('founderApplications'),
-		jobType: v.union(v.literal('single_agent'), v.literal('multi_agent')),
+		jobType: v.literal('multi_agent'),
 		status: v.union(
 			v.literal('queued'),
 			v.literal('running'),

@@ -1,6 +1,6 @@
 import { action } from './_generated/server';
 import { v } from 'convex/values';
-import { components } from './_generated/api';
+import { api, components } from './_generated/api';
 import { Agent, createTool, stepCountIs } from '@convex-dev/agent';
 import { RAG } from '@convex-dev/rag';
 import { openai } from '@ai-sdk/openai';
@@ -49,24 +49,97 @@ const createDomainContextTool = (companyId: string) =>
 		}),
 		handler: async (ctx, args) => {
 			try {
-				const { text: contextText } = await companyRag.search(ctx, {
-					namespace: companyId,
-					query: `${args.domain}: ${args.query}`,
-					limit: args.limit,
-					chunkContext: { before: 1, after: 1 },
-					filters: [
-						{ name: 'domain', value: args.domain },
-						{ name: 'contentType', value: 'founderApplication' },
+				// Perform both RAG search and document analysis in parallel
+				const [ragResult, documents] = await Promise.all([
+					companyRag.search(ctx, {
+						namespace: companyId,
+						query: `${args.domain}: ${args.query}`,
+						limit: args.limit,
+						chunkContext: { before: 1, after: 1 },
+						filters: [
+							{ name: 'domain', value: args.domain },
+							{ name: 'contentType', value: 'founderApplication' },
+						],
+					}).catch(() => ({ text: 'RAG search failed or returned no results.' })),
+					ctx.runQuery(api.founders.getCompanyDocuments, { companyId: companyId as any }).catch(() => []),
+				]);
+
+				let documentAnalysisResult = 'No documents available for analysis.';
+
+				// Analyze documents if available
+				if (documents.length > 0) {
+					const fileContents = await Promise.all(
+						documents.map(async (doc) => {
+							const fileData = await ctx.storage.get(doc.storageId);
+							if (!fileData) {
+								console.warn(`File not found in storage: ${doc.fileName}`);
+								return null;
+							}
+							return {
+								fileName: doc.fileName,
+								fileData: new Uint8Array(await fileData.arrayBuffer()),
+								mediaType: doc.mediaType,
+							};
+						})
+					);
+
+					const validFiles = fileContents.filter((file) => file !== null);
+
+					if (validFiles.length > 0) {
+						const content = [
+							{
+								type: 'text' as const,
+								text: `Please analyze the uploaded documents and answer this specific question about the ${args.domain} domain: "${args.query}"
+
+Focus on extracting relevant information from the documents that directly addresses this query. If the information is not available in the documents, clearly state that. Be specific and provide direct quotes or references from the documents when possible.`,
+							},
+							...validFiles.map((doc) => ({
+								type: 'file' as const,
+								data: doc!.fileData,
+								mediaType: doc!.mediaType || 'application/pdf',
+								filename: doc!.fileName,
+							})),
+						];
+
+						const docResult = await generateText({
+							model: google('gemini-flash-latest'),
+							messages: [
+								{
+									role: 'user',
+									content,
+								},
+							],
+						});
+						documentAnalysisResult = docResult.text;
+					}
+				}
+
+				// Combine both results with Gemini Flash for final answer
+				const combinedAnalysis = await generateText({
+					model: google('gemini-flash-latest'),
+					messages: [
+						{
+							role: 'user',
+							content: `Please provide a comprehensive answer to this question about the ${args.domain} domain: "${args.query}"
+
+You have two sources of information:
+
+1. RAG Search Results: ${ragResult.text}
+
+2. Direct Document Analysis: ${documentAnalysisResult}
+
+Please combine both sources to provide the most accurate and complete answer. Prioritize information from the direct document analysis when it's available and specific, but supplement with RAG results for additional context. If there are any conflicts, note them and explain which source you trust more. Provide a clear, concise final answer.`,
+						},
 					],
 				});
 
 				return {
 					success: true,
-					context: contextText,
+					context: combinedAnalysis.text,
 					domain: args.domain,
 					query: args.query,
 					companyId: companyId,
-					sourceCount: contextText.split('\n---\n').length,
+					sourceCount: documents.length + (ragResult.text !== 'RAG search failed or returned no results.' ? ragResult.text.split('\n---\n').length : 0),
 				};
 			} catch (error) {
 				console.warn(`Failed to retrieve ${args.domain} context:`, error);
