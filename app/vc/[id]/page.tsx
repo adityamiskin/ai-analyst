@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import AnalysisContainer from "@/components/vc/analysis-container";
 import { api } from "@/convex/_generated/api";
 import { fetchQuery } from "convex/nextjs";
-import { Id } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { Suspense } from "react";
 
 interface VCPageProps {
@@ -15,9 +15,9 @@ interface VCPageProps {
 
 export default async function VCPage({ params }: VCPageProps) {
   const { id } = await params;
-  const app = await fetchQuery(api.founders.getApplication, {
+  const app = (await fetchQuery(api.founders.getApplication, {
     id: id,
-  });
+  })) as Doc<"founderApplications">;
 
   if (!app) {
     notFound();
@@ -43,7 +43,7 @@ export default async function VCPage({ params }: VCPageProps) {
         </div>
       </header>
       <Suspense fallback={<div>Loading...</div>}>
-        <AnalysisContainer />
+        <AnalysisContainer application={app} />
       </Suspense>
     </>
   );

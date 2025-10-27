@@ -47,7 +47,13 @@ const risk = v.object({
 
 // Multi-agent analysis structures
 const agentAnalysis = v.object({
-  agentId: v.string(), // 'finance', 'evaluation', 'competitor', 'market', 'technical'
+  agentId: v.union(
+    v.literal("finance"),
+    v.literal("evaluation"),
+    v.literal("competitor"),
+    v.literal("market"),
+    v.literal("technical")
+  ),
   agentName: v.string(),
   summary: v.string(),
   confidence: v.number(), // 0-1
@@ -75,7 +81,7 @@ const multiAgentSnapshot = v.object({
     v.literal("buy"),
     v.literal("hold"),
     v.literal("sell"),
-    v.literal("strong_sell"),
+    v.literal("strong_sell")
   ),
   recommendationReasoning: v.string(),
 });
@@ -122,7 +128,7 @@ export default defineSchema({
       kpis: v.string(),
     }),
     documents: v.object({
-      pitchDeck: v.optional(v.array(fileRef)),
+      pitchDeck: v.array(fileRef),
       other: v.optional(v.array(fileRef)),
     }),
     primaryEmail: v.string(),
@@ -148,7 +154,7 @@ export default defineSchema({
       v.literal("ingesting"),
       v.literal("analyzing"),
       v.literal("completed"),
-      v.literal("failed"),
+      v.literal("failed")
     ),
     progress: v.number(), // 0-100
     message: v.string(),
@@ -172,7 +178,7 @@ export default defineSchema({
       v.literal("tool_result"),
       v.literal("agent_start"),
       v.literal("agent_complete"),
-      v.literal("agent_error"),
+      v.literal("agent_error")
     ),
     toolName: v.optional(v.string()),
     toolInput: v.optional(v.any()),
@@ -183,7 +189,7 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("running"),
       v.literal("completed"),
-      v.literal("error"),
+      v.literal("error")
     ),
     timestamp: v.number(),
     metadata: v.optional(v.any()),
@@ -219,7 +225,7 @@ export default defineSchema({
         date: v.string(),
         url: v.optional(v.string()),
         summary: v.optional(v.string()),
-      }),
+      })
     ),
     cachedAt: v.number(), // Timestamp when news was cached
     expiresAt: v.number(), // Timestamp when cache should expire (cachedAt + 24 hours)

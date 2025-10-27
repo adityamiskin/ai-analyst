@@ -3,11 +3,12 @@
 import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 import AIVisualizations from "@/components/vc/ai-visualizations";
 import Risks from "@/components/vc/risks";
 import { SourcesEvidence } from "@/components/vc/vc-sources-evidence";
 import AgentActivityDashboard from "@/components/vc/agent-activity-dashboard";
+import FounderInformation from "@/components/vc/founder-information";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,23 +22,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Response } from "@/components/ai-elements/response";
-import type {
-  MultiAgentSnapshot,
-  AgentAnalysisResult,
-  Risk,
-} from "@/lib/types";
+import type { MultiAgentSnapshot } from "@/lib/types";
 
-export default function AnalysisContainer() {
+export default function AnalysisContainer({
+  application,
+}: {
+  application: Doc<"founderApplications">;
+}) {
   const params = useParams<{ id?: string }>();
   const companyId = params?.id as Id<"founderApplications"> | undefined;
 
   // Multi-agent analysis
   const latestMultiAgent = useQuery(
     api.multi_agent_analysis.getLatestMultiAgentSnapshot,
-    companyId ? { companyId: companyId } : "skip",
+    companyId ? { companyId: companyId } : "skip"
   );
   const startMultiAgent = useMutation(
-    api.multi_agent_analysis.startMultiAgentAnalysis,
+    api.multi_agent_analysis.startMultiAgentAnalysis
   );
   const multiAgentJobStatus = useQuery(
     api.multi_agent_analysis.getJobStatus,
@@ -45,7 +46,7 @@ export default function AnalysisContainer() {
       ? {
           companyId: companyId,
         }
-      : "skip",
+      : "skip"
   );
 
   async function onRunMultiAgent() {
@@ -63,7 +64,7 @@ export default function AnalysisContainer() {
   const isMultiAgentRunning =
     (multiAgentJobStatus &&
       ["queued", "running", "ingesting", "analyzing"].includes(
-        multiAgentJobStatus.status,
+        multiAgentJobStatus.status
       )) ||
     false;
 
@@ -74,7 +75,7 @@ export default function AnalysisContainer() {
   const hasNoMultiAgentData = latestMultiAgent === null;
 
   const getRecommendation = (
-    recommendation: MultiAgentSnapshot["investmentRecommendation"],
+    recommendation: MultiAgentSnapshot["investmentRecommendation"]
   ) => {
     switch (recommendation) {
       case "strong_buy":
@@ -157,28 +158,26 @@ export default function AnalysisContainer() {
           AI Analyst Report
         </h2>
         <div className="flex gap-2">
-          {!multiAgentSnapshot && !isMultiAgentRunning && (
-            <div className="text-sm text-muted-foreground">
-              Analysis will start automatically when the application is
-              submitted.
-            </div>
-          )}
-          {(multiAgentSnapshot || isMultiAgentRunning) && (
-            <Button
-              onClick={onRunMultiAgent}
-              disabled={!companyId || isMultiAgentRunning}
-              variant={multiAgentSnapshot ? "outline" : "default"}
-              className={
-                multiAgentSnapshot ? "" : "bg-blue-600 hover:bg-blue-700"
-              }
-            >
-              {isMultiAgentRunning
-                ? multiAgentJobStatus?.message || "Running Multi-Agent…"
+          <Button
+            onClick={onRunMultiAgent}
+            disabled={!companyId || isMultiAgentRunning}
+            variant={multiAgentSnapshot ? "outline" : "default"}
+            className={
+              multiAgentJobStatus?.status === "failed"
+                ? "bg-red-600 hover:bg-red-700"
                 : multiAgentSnapshot
-                  ? "Re-run Analysis"
-                  : "Multi-Agent Analysis"}
-            </Button>
-          )}
+                ? ""
+                : "bg-blue-600 hover:bg-blue-700"
+            }
+          >
+            {isMultiAgentRunning
+              ? multiAgentJobStatus?.message || "Running Multi-Agent…"
+              : multiAgentJobStatus?.status === "failed"
+              ? "Retry Analysis"
+              : multiAgentSnapshot
+              ? "Re-run Analysis"
+              : "Start Multi-Agent Analysis"}
+          </Button>
         </div>
       </div>
 
@@ -189,8 +188,9 @@ export default function AnalysisContainer() {
       )}
 
       {companyId && (
-        <Tabs defaultValue="multi-agent" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="founder-info" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="founder-info">Founder Information</TabsTrigger>
             <TabsTrigger
               value="multi-agent"
               className="flex items-center gap-2"
@@ -202,13 +202,13 @@ export default function AnalysisContainer() {
                     <Badge
                       className={
                         getRecommendation(
-                          multiAgentSnapshot.investmentRecommendation,
+                          multiAgentSnapshot.investmentRecommendation
                         ).color
                       }
                     >
                       {
                         getRecommendation(
-                          multiAgentSnapshot.investmentRecommendation,
+                          multiAgentSnapshot.investmentRecommendation
                         ).label
                       }
                     </Badge>
@@ -242,6 +242,16 @@ export default function AnalysisContainer() {
             </TabsTrigger>
           </TabsList>
 
+          <TabsContent value="founder-info" className="mt-6">
+            {application ? (
+              <FounderInformation application={application} />
+            ) : (
+              <div className="text-sm text-muted-foreground">
+                Loading founder information…
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="multi-agent" className="mt-6">
             {isLoadingMultiAgent && (
               <div className="text-sm text-muted-foreground">
@@ -273,12 +283,41 @@ export default function AnalysisContainer() {
               </Card>
             )}
 
-            {hasNoMultiAgentData && !isMultiAgentRunning && (
-              <div className="rounded-md border p-4 text-sm">
-                No multi-agent analysis found for this company. Click
-                "Multi-Agent Analysis" to generate one.
-              </div>
-            )}
+            {hasNoMultiAgentData &&
+              !isMultiAgentRunning &&
+              multiAgentJobStatus?.status !== "failed" && (
+                <div className="rounded-md border p-4 text-sm">
+                  No multi-agent analysis found for this company. Click
+                  "Multi-Agent Analysis" to generate one.
+                </div>
+              )}
+
+            {multiAgentJobStatus?.status === "failed" &&
+              !multiAgentSnapshot && (
+                <Card className="mb-6 border-red-200">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-red-800">
+                        Analysis Failed
+                      </h3>
+                      <Badge className="bg-red-100 text-red-800 border-red-200">
+                        Failed
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      {multiAgentJobStatus.error ||
+                        "The multi-agent analysis encountered an error. Click 'Retry Analysis' to try again."}
+                    </p>
+                    <Button
+                      onClick={onRunMultiAgent}
+                      disabled={!companyId || isMultiAgentRunning}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Retry Analysis
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
 
             {multiAgentSnapshot && (
               <>
@@ -290,13 +329,13 @@ export default function AnalysisContainer() {
                       <Badge
                         className={
                           getRecommendation(
-                            multiAgentSnapshot.investmentRecommendation,
+                            multiAgentSnapshot.investmentRecommendation
                           ).color
                         }
                       >
                         {
                           getRecommendation(
-                            multiAgentSnapshot.investmentRecommendation,
+                            multiAgentSnapshot.investmentRecommendation
                           ).label
                         }
                       </Badge>
@@ -327,146 +366,123 @@ export default function AnalysisContainer() {
 
                 {/* Individual Agent Analyses */}
                 <div className="grid gap-6">
-                  {multiAgentSnapshot.agentAnalyses.map(
-                    (agentAnalysis: AgentAnalysisResult) => (
-                      <Card key={agentAnalysis.agentId}>
-                        <CardHeader>
-                          <CardTitle className="flex items-center justify-between">
-                            {agentAnalysis.agentName}
-                            <Badge variant="outline">
-                              {Math.round(agentAnalysis.confidence * 100)}%
-                              confidence
-                            </Badge>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
+                  {multiAgentSnapshot.agentAnalyses.map((agentAnalysis) => (
+                    <Card key={agentAnalysis.agentId}>
+                      <CardHeader>
+                        <CardTitle className="flex items-center justify-between">
+                          {agentAnalysis.agentName}
+                          <Badge variant="outline">
+                            {Math.round(agentAnalysis.confidence * 100)}%
+                            confidence
+                          </Badge>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <h4 className="font-medium mb-2">Summary</h4>
+                          <Response className="text-sm text-muted-foreground">
+                            {agentAnalysis.summary}
+                          </Response>
+                        </div>
+
+                        {agentAnalysis.keyFindings.length > 0 && (
                           <div>
-                            <h4 className="font-medium mb-2">Summary</h4>
-                            <Response className="text-sm text-muted-foreground">
-                              {agentAnalysis.summary}
-                            </Response>
+                            <h4 className="font-medium mb-2">Key Findings</h4>
+                            <ul className="text-sm space-y-1">
+                              {agentAnalysis.keyFindings.map(
+                                (finding: string, index: number) => (
+                                  <li
+                                    key={index}
+                                    className="flex items-start gap-2"
+                                  >
+                                    <span className="text-blue-500 mt-1">
+                                      •
+                                    </span>
+                                    <span>{finding}</span>
+                                  </li>
+                                )
+                              )}
+                            </ul>
                           </div>
+                        )}
 
-                          {agentAnalysis.keyFindings.length > 0 && (
-                            <div>
-                              <h4 className="font-medium mb-2">Key Findings</h4>
-                              <ul className="text-sm space-y-1">
-                                {agentAnalysis.keyFindings.map(
-                                  (finding: string, index: number) => (
-                                    <li
-                                      key={index}
-                                      className="flex items-start gap-2"
-                                    >
-                                      <span className="text-blue-500 mt-1">
-                                        •
-                                      </span>
-                                      <span>{finding}</span>
-                                    </li>
-                                  ),
-                                )}
-                              </ul>
-                            </div>
-                          )}
+                        {agentAnalysis.recommendations.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">
+                              Recommendations
+                            </h4>
+                            <ul className="text-sm space-y-1">
+                              {agentAnalysis.recommendations.map(
+                                (rec: string, index: number) => (
+                                  <li
+                                    key={index}
+                                    className="flex items-start gap-2"
+                                  >
+                                    <span className="text-green-500 mt-1">
+                                      →
+                                    </span>
+                                    <span>{rec}</span>
+                                  </li>
+                                )
+                              )}
+                            </ul>
+                          </div>
+                        )}
 
-                          {agentAnalysis.recommendations.length > 0 && (
-                            <div>
-                              <h4 className="font-medium mb-2">
-                                Recommendations
-                              </h4>
-                              <ul className="text-sm space-y-1">
-                                {agentAnalysis.recommendations.map(
-                                  (rec: string, index: number) => (
-                                    <li
-                                      key={index}
-                                      className="flex items-start gap-2"
+                        {agentAnalysis.risks.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Risks</h4>
+                            <div className="space-y-2">
+                              {agentAnalysis.risks.map(
+                                (risk, index: number) => (
+                                  <div
+                                    key={index}
+                                    className="flex items-start gap-2 p-2 rounded border"
+                                  >
+                                    <Badge
+                                      variant={
+                                        risk.severity === "high"
+                                          ? "destructive"
+                                          : risk.severity === "med"
+                                          ? "default"
+                                          : "secondary"
+                                      }
+                                      className="text-xs"
                                     >
-                                      <span className="text-green-500 mt-1">
-                                        →
-                                      </span>
-                                      <span>{rec}</span>
-                                    </li>
-                                  ),
-                                )}
-                              </ul>
-                            </div>
-                          )}
-
-                          {agentAnalysis.risks.length > 0 && (
-                            <div>
-                              <h4 className="font-medium mb-2">Risks</h4>
-                              <div className="space-y-2">
-                                {agentAnalysis.risks.map(
-                                  (risk: Risk, index: number) => (
-                                    <div
-                                      key={index}
-                                      className="flex items-start gap-2 p-2 rounded border"
-                                    >
-                                      <Badge
-                                        variant={
-                                          risk.severity === "high"
-                                            ? "destructive"
-                                            : risk.severity === "med"
-                                              ? "default"
-                                              : "secondary"
-                                        }
-                                        className="text-xs"
-                                      >
-                                        {risk.severity}
-                                      </Badge>
-                                      <div className="flex-1">
-                                        <p className="text-sm font-medium">
-                                          {risk.label}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {risk.evidence}
-                                        </p>
-                                      </div>
+                                      {risk.severity}
+                                    </Badge>
+                                    <div className="flex-1">
+                                      <p className="text-sm font-medium">
+                                        {risk.label}
+                                      </p>
+                                      <p className="text-xs text-muted-foreground">
+                                        {risk.evidence}
+                                      </p>
                                     </div>
-                                  ),
-                                )}
-                              </div>
+                                  </div>
+                                )
+                              )}
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ),
-                  )}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
 
                 <Separator className="my-8" />
 
                 {/* Consolidated Metrics and Risks */}
                 <section id="consolidated-metrics" className="scroll-mt-24">
-                  <AIVisualizations
-                    company={{
-                      ...multiAgentSnapshot,
-                      summary: multiAgentSnapshot.overallSummary,
-                      metrics: multiAgentSnapshot.consolidatedMetrics,
-                      risks: multiAgentSnapshot.consolidatedRisks,
-                    }}
-                  />
+                  <AIVisualizations company={multiAgentSnapshot} />
                 </section>
                 <Separator className="my-8" />
                 <section id="consolidated-risks" className="scroll-mt-24">
-                  <Risks
-                    company={{
-                      ...multiAgentSnapshot,
-                      summary: multiAgentSnapshot.overallSummary,
-                      metrics: multiAgentSnapshot.consolidatedMetrics,
-                      risks: multiAgentSnapshot.consolidatedRisks,
-                    }}
-                  />
+                  <Risks company={multiAgentSnapshot} />
                 </section>
                 <Separator className="my-8" />
                 <section id="sources" className="scroll-mt-24">
-                  <SourcesEvidence
-                    company={{
-                      ...multiAgentSnapshot,
-                      summary: multiAgentSnapshot.overallSummary,
-                      metrics: multiAgentSnapshot.consolidatedMetrics,
-                      risks: multiAgentSnapshot.consolidatedRisks,
-                    }}
-                  />
+                  <SourcesEvidence company={multiAgentSnapshot} />
                 </section>
               </>
             )}

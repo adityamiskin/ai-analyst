@@ -23,6 +23,7 @@ import {
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { FormData, formSchema, Founder } from "@/lib/types";
+import { Id } from "@/convex/_generated/dataModel";
 
 const defaultValues: FormData = {
   company: {
@@ -97,18 +98,35 @@ export default function YCQuestionnaire() {
         return;
       }
 
-      await createApplication({ ...data, primaryEmail });
+      // Clean the data by removing File objects before sending to Convex
+      const cleanedData = {
+        ...data,
+        documents: {
+          pitchDeck: data.documents.pitchDeck.map(
+            ({ file, storageId, ...fileRef }) => ({
+              ...fileRef,
+              storageId: storageId ? (storageId as Id<"_storage">) : undefined, // Cast storageId to Convex ID type
+            })
+          ),
+          other: data.documents.other.map(
+            ({ file, storageId, ...fileRef }) => ({
+              ...fileRef,
+              storageId: storageId ? (storageId as Id<"_storage">) : undefined, // Cast storageId to Convex ID type
+            })
+          ),
+        },
+      };
 
-      toast.success(
-        "Application submitted successfully! AI analysis will start automatically.",
-      );
+      await createApplication({ ...cleanedData, primaryEmail });
+
+      toast.success("Application submitted successfully!");
       form.reset(defaultValues);
     } catch (error) {
       console.error("❌ Submission error:", error);
       toast.error(
         `Failed to submit: ${
           error instanceof Error ? error.message : "Unknown error"
-        }`,
+        }`
       );
     }
   };
@@ -132,11 +150,11 @@ export default function YCQuestionnaire() {
   const updateFounder = (
     index: number,
     field: keyof Founder,
-    value: string,
+    value: string
   ) => {
     const currentFounders = form.getValues("team.founders");
     const updatedFounders = currentFounders.map((founder, i) =>
-      i === index ? { ...founder, [field]: value } : founder,
+      i === index ? { ...founder, [field]: value } : founder
     );
     form.setValue("team.founders", updatedFounders);
   };
@@ -145,7 +163,7 @@ export default function YCQuestionnaire() {
     const currentFounders = form.getValues("team.founders");
     form.setValue(
       "team.founders",
-      currentFounders.filter((_, i) => i !== index),
+      currentFounders.filter((_, i) => i !== index)
     );
   };
 

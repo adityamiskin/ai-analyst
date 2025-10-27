@@ -34,15 +34,11 @@ import {
 } from "recharts";
 import { api } from "@/convex/_generated/api";
 import { useAction } from "convex/react";
-import type {
-  CompanyWithId,
-  Visualization,
-  CompanySnapshot,
-} from "@/lib/types";
+import type { Visualization, MultiAgentSnapshot } from "@/lib/types";
 import { Loader2, TrendingUp, BarChart3 } from "lucide-react";
 
 interface AIVisualizationsProps {
-  company: CompanySnapshot | CompanyWithId;
+  company: MultiAgentSnapshot;
 }
 
 const COLORS = [
@@ -59,6 +55,14 @@ const COLORS = [
 function renderChart(visualization: Visualization) {
   const { type, data, config } = visualization;
   const colors = config.colors || COLORS;
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center h-full text-muted-foreground">
+        No data available
+      </div>
+    );
+  }
 
   switch (type) {
     case "bar":
@@ -249,7 +253,7 @@ export default function AIVisualizations({ company }: AIVisualizationsProps) {
   const [visualizations, setVisualizations] = useState<Visualization[]>([]);
   const [loading, setLoading] = useState(true);
   const generateVisualizations = useAction(
-    api.ai.generateCompanyVisualizations,
+    api.ai.generateCompanyVisualizations
   );
 
   const selectedCompany = company;
@@ -259,19 +263,18 @@ export default function AIVisualizations({ company }: AIVisualizationsProps) {
       try {
         setLoading(true);
         const result = await generateVisualizations({
-          companyId: "id" in selectedCompany ? selectedCompany.id : undefined,
           companyData: {
             company: selectedCompany.company,
             sector: selectedCompany.sector,
             stage: selectedCompany.stage,
-            metrics: selectedCompany.metrics.map((m) => ({
+            metrics: selectedCompany.consolidatedMetrics.map((m) => ({
               key: m.key,
               label: m.label,
               value: m.value,
               unit: m.unit,
               peerMedian: m.peerMedian,
             })),
-            risks: selectedCompany.risks,
+            risks: selectedCompany.consolidatedRisks,
           },
         });
         setVisualizations(result.visualizations);

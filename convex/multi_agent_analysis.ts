@@ -30,17 +30,17 @@ const agentAnalysisSchema = z.object({
   agentId: z
     .string()
     .describe(
-      "Unique identifier for the agent type (e.g., 'finance', 'evaluation', 'competitor', 'market', 'technical')",
+      "Unique identifier for the agent type (e.g., 'finance', 'evaluation', 'competitor', 'market', 'technical')"
     ),
   agentName: z
     .string()
     .describe(
-      "Human-readable name of the agent (e.g., 'Financial Analysis Agent', 'Investment Evaluation Agent')",
+      "Human-readable name of the agent (e.g., 'Financial Analysis Agent', 'Investment Evaluation Agent')"
     ),
   summary: z
     .string()
     .describe(
-      "Concise executive summary of the analysis findings and key conclusions",
+      "Concise executive summary of the analysis findings and key conclusions"
     ),
   confidence: z
     .number()
@@ -48,13 +48,12 @@ const agentAnalysisSchema = z.object({
     .max(1)
     .default(0.5)
     .describe(
-      "Confidence level in the analysis (0.0 to 1.0, where 1.0 is highest confidence)",
+      "Confidence level in the analysis (0.0 to 1.0, where 1.0 is highest confidence)"
     ),
   keyFindings: z
     .array(z.string())
-    .default([])
     .describe(
-      "Array of the most important findings and insights from the analysis",
+      "Array of the most important findings and insights from the analysis"
     ),
   metrics: z
     .array(
@@ -62,16 +61,15 @@ const agentAnalysisSchema = z.object({
         key: z
           .string()
           .describe(
-            "Unique identifier for the metric (e.g., 'revenue_2024', 'tam_2024')",
+            "Unique identifier for the metric (e.g., 'revenue_2024', 'tam_2024')"
           ),
         label: z
           .string()
           .describe(
-            "Human-readable label for the metric (e.g., '2024 Revenue', 'Total Addressable Market')",
+            "Human-readable label for the metric (e.g., '2024 Revenue', 'Total Addressable Market')"
           ),
         value: z
           .number()
-          .default(0)
           .describe("The numeric value of the metric till 2 decimal places"),
         unit: z
           .string()
@@ -81,36 +79,28 @@ const agentAnalysisSchema = z.object({
           .number()
           .optional()
           .describe(
-            "Median value from comparable companies or industry benchmarks",
+            "Median value from comparable companies or industry benchmarks"
           ),
         sources: z
           .array(
             z.object({
               title: z
                 .string()
-                .default("Unknown")
                 .describe("Title or name of the source document or website"),
-              url: z
-                .string()
-                .default("")
-                .describe("URL of the source if available"),
+              url: z.string().describe("URL of the source if available"),
               date: z
                 .string()
-                .default(new Date().toISOString().split("T")[0])
                 .describe("Date when the source was accessed or published"),
               confidence: z
                 .number()
-                .default(0.5)
                 .describe(
-                  "Confidence level in this specific source (0.0 to 1.0)",
+                  "Confidence level in this specific source (0.0 to 1.0)"
                 ),
               extractedFacts: z
                 .array(z.string())
-                .default([])
                 .describe("Key facts extracted from this source"),
-            }),
+            })
           )
-          .default([])
           .describe("Sources used to calculate or validate this metric"),
         checks: z
           .array(
@@ -118,84 +108,71 @@ const agentAnalysisSchema = z.object({
               label: z
                 .string()
                 .describe(
-                  "Name of the validation check (e.g., 'Revenue growth', 'Market validation')",
+                  "Name of the validation check (e.g., 'Revenue growth', 'Market validation')"
                 ),
               status: z
                 .enum(["pass", "warn"])
-                .default("pass")
                 .describe(
-                  "Result of the check - 'pass' for good, 'warn' for concerning",
+                  "Result of the check - 'pass' for good, 'warn' for concerning"
                 ),
               note: z
                 .string()
-                .optional()
                 .describe(
-                  "Additional context or explanation for the check result",
+                  "Additional context or explanation for the check result"
                 ),
-            }),
+            })
           )
-          .default([])
           .describe("Validation checks performed on this metric"),
-      }),
+      })
     )
-    .default([])
     .describe(
-      "Key quantitative metrics with benchmarks, sources, and validation checks",
+      "Key quantitative metrics with benchmarks, sources, and validation checks"
     ),
   risks: z
     .array(
       z.object({
         severity: z
           .enum(["low", "med", "high"])
-          .default("low")
           .describe(
-            "Risk severity level: 'low' for minor concerns, 'med' for moderate impact, 'high' for major threats",
+            "Risk severity level: 'low' for minor concerns, 'med' for moderate impact, 'high' for major threats"
           ),
         label: z
           .string()
           .describe(
-            "Brief name or title of the risk (e.g., 'Market competition', 'Technology risk')",
+            "Brief name or title of the risk (e.g., 'Market competition', 'Technology risk')"
           ),
         evidence: z
           .string()
           .describe(
-            "Specific evidence, data, or reasoning supporting this risk assessment",
+            "Specific evidence, data, or reasoning supporting this risk assessment"
           ),
-      }),
+      })
     )
-    .default([])
     .describe("Identified risks with severity levels and supporting evidence"),
   sources: z
     .array(
       z.object({
         title: z
           .string()
-          .default("Unknown")
           .describe("Title or name of the source document or website"),
-        url: z.string().default("").describe("URL of the source if available"),
+        url: z.string().describe("URL of the source if available"),
         date: z
           .string()
-          .default(new Date().toISOString().split("T")[0])
           .describe("Date when the source was accessed or published"),
         confidence: z
           .number()
-          .default(0.5)
           .describe("Confidence level in this source (0.0 to 1.0)"),
         extractedFacts: z
           .array(z.string())
-          .default([])
           .describe("Key facts extracted from this source"),
-      }),
+      })
     )
-    .default([])
     .describe("External sources used in the analysis with confidence levels"),
   recommendations: z
     .array(z.string())
-    .default([])
     .describe("Specific, actionable recommendations based on the analysis"),
   lastUpdated: z
     .string()
-    .default(new Date().toISOString().split("T")[0])
     .describe("Date when this analysis was last updated (YYYY-MM-DD format)"),
 });
 
@@ -203,42 +180,36 @@ const multiAgentSnapshotSchema = z.object({
   company: z.string().describe("Name of the company being analyzed"),
   sector: z
     .string()
-    .default("Unknown")
     .describe(
-      "Industry sector the company operates in (e.g., 'Technology', 'Healthcare', 'Fintech')",
+      "Industry sector the company operates in (e.g., 'Technology', 'Healthcare', 'Fintech')"
     ),
   stage: z
     .string()
-    .default("Unknown")
     .describe(
-      "Current funding stage of the company (e.g., 'Seed', 'Series A', 'Series B')",
+      "Current funding stage of the company (e.g., 'Seed', 'Series A', 'Series B')"
     ),
   ask: z
     .string()
-    .default("Unknown")
     .describe(
-      "Current funding ask or valuation (e.g., '$5M at $25M pre-money')",
+      "Current funding ask or valuation (e.g., '$5M at $25M pre-money')"
     ),
   overallSummary: z
     .string()
     .describe(
-      "Executive summary synthesizing all agent analyses and key investment conclusions",
+      "Executive summary synthesizing all agent analyses and key investment conclusions"
     ),
   overallConfidence: z
     .number()
     .min(0)
     .max(1)
-    .default(0.5)
     .describe("Overall confidence level in the complete analysis (0.0 to 1.0)"),
   lastUpdated: z
     .string()
-    .default(new Date().toISOString().split("T")[0])
     .describe("Date when this snapshot was last updated (YYYY-MM-DD format)"),
   agentAnalyses: z
     .array(agentAnalysisSchema)
-    .default([])
     .describe(
-      "Complete analysis results from all specialized agents (finance, evaluation, competitor, market, technical)",
+      "Complete analysis results from all specialized agents (finance, evaluation, competitor, market, technical)"
     ),
   consolidatedMetrics: z
     .array(
@@ -273,7 +244,7 @@ const multiAgentSnapshotSchema = z.object({
                 .array(z.string())
                 .default([])
                 .describe("Key facts from this source"),
-            }),
+            })
           )
           .default([])
           .describe("Sources supporting this consolidated metric"),
@@ -289,13 +260,12 @@ const multiAgentSnapshotSchema = z.object({
                 .string()
                 .optional()
                 .describe("Additional context for the check"),
-            }),
+            })
           )
           .default([])
           .describe("Validation checks for this consolidated metric"),
-      }),
+      })
     )
-    .default([])
     .describe("Cross-agent consolidated metrics with sources and validation"),
   consolidatedRisks: z
     .array(
@@ -308,25 +278,22 @@ const multiAgentSnapshotSchema = z.object({
         evidence: z
           .string()
           .describe("Combined evidence from multiple agent analyses"),
-      }),
+      })
     )
-    .default([])
     .describe("Consolidated risks identified across all agent analyses"),
   investmentRecommendation: z
     .enum(["strong_buy", "buy", "hold", "sell", "strong_sell"])
-    .default("hold")
     .describe("Final investment recommendation based on all agent analyses"),
   recommendationReasoning: z
     .string()
-    .default("Analysis in progress")
     .describe(
-      "Detailed reasoning behind the investment recommendation, citing key factors from all analyses",
+      "Detailed reasoning behind the investment recommendation, citing key factors from all analyses"
     ),
 });
 
 async function generateStructuredResult(
   thread: Thread<any>,
-  resultText: string,
+  resultText: string
 ) {
   const structuredResult = await thread.generateObject({
     prompt:
@@ -341,9 +308,9 @@ async function generateStructuredResult(
 
 async function runFinanceAnalysis(
   ctx: GenericActionCtx<DataModel>,
-  companyId: string,
+  companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: string,
+  jobId: Id<"analysisJobs">
 ) {
   const financeAgent = createFinanceAgent(companyId);
   const { thread } = await financeAgent.createThread(ctx, {
@@ -373,12 +340,12 @@ Company baseline context: ${baselineContext}`;
       },
       {
         storageOptions: { saveMessages: "all" },
-      },
+      }
     );
 
     const structuredResult = await generateStructuredResult(
       thread,
-      result.text,
+      result.text
     );
 
     await ctx.runAction(internal.agent_activity.extractAgentActivity, {
@@ -433,7 +400,7 @@ async function runEvaluationAnalysis(
   ctx: GenericActionCtx<DataModel>,
   companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: Id<"analysisJobs">,
+  jobId: Id<"analysisJobs">
 ) {
   const evaluationAgent = createEvaluationAgent(companyId);
   const { thread } = await evaluationAgent.createThread(ctx, {
@@ -464,12 +431,12 @@ Company baseline context: ${baselineContext}`;
       },
       {
         storageOptions: { saveMessages: "all" },
-      },
+      }
     );
 
     const structuredResult = await generateStructuredResult(
       thread,
-      result.text,
+      result.text
     );
 
     // Extract agent activity after completion (skip start log since we already logged it)
@@ -525,7 +492,7 @@ async function runCompetitorAnalysis(
   ctx: GenericActionCtx<DataModel>,
   companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: Id<"analysisJobs">,
+  jobId: Id<"analysisJobs">
 ) {
   const competitorAgent = createCompetitorAgent(companyId);
   const { thread } = await competitorAgent.createThread(ctx, {
@@ -556,12 +523,12 @@ Company baseline context: ${baselineContext}`;
       },
       {
         storageOptions: { saveMessages: "all" },
-      },
+      }
     );
 
     const structuredResult = await generateStructuredResult(
       thread,
-      result.text,
+      result.text
     );
 
     // Extract agent activity after completion (skip start log since we already logged it)
@@ -619,7 +586,7 @@ async function runMarketAnalysis(
   ctx: GenericActionCtx<DataModel>,
   companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: Id<"analysisJobs">,
+  jobId: Id<"analysisJobs">
 ) {
   const marketAgent = createMarketAgent(companyId);
   const { thread } = await marketAgent.createThread(ctx, {
@@ -650,12 +617,12 @@ Company baseline context: ${baselineContext}`;
       },
       {
         storageOptions: { saveMessages: "all" },
-      },
+      }
     );
 
     const structuredResult = await generateStructuredResult(
       thread,
-      result.text,
+      result.text
     );
 
     // Extract agent activity after completion (skip start log since we already logged it)
@@ -713,7 +680,7 @@ async function runTechnicalAnalysis(
   ctx: GenericActionCtx<DataModel>,
   companyId: Id<"founderApplications">,
   baselineContext: string,
-  jobId: Id<"analysisJobs">,
+  jobId: Id<"analysisJobs">
 ) {
   const technicalAgent = createTechnicalAgent(companyId);
   const { thread } = await technicalAgent.createThread(ctx, {
@@ -744,12 +711,12 @@ Company baseline context: ${baselineContext}`;
       },
       {
         storageOptions: { saveMessages: "all" },
-      },
+      }
     );
 
     const structuredResult = await generateStructuredResult(
       thread,
-      result.text,
+      result.text
     );
 
     // Extract agent activity after completion (skip start log since we already logged it)
@@ -812,7 +779,7 @@ export const updateJobStatus = internalMutation({
       v.literal("ingesting"),
       v.literal("analyzing"),
       v.literal("completed"),
-      v.literal("failed"),
+      v.literal("failed")
     ),
     progress: v.number(),
     message: v.string(),
@@ -821,7 +788,7 @@ export const updateJobStatus = internalMutation({
   },
   handler: async (
     ctx,
-    { jobId, status, progress, message, completedAt, error },
+    { jobId, status, progress, message, completedAt, error }
   ) => {
     await ctx.db.patch(jobId, {
       status,
@@ -872,10 +839,10 @@ export const runMultiAgentAnalysis = internalAction({
 
       // Get baseline company data for shared context
       const companyDoc = await ctx.runQuery(
-        internal.multi_agent_analysis.getApplicationById,
+        internal.founders.getApplicationById,
         {
           id: companyId,
-        },
+        }
       );
 
       const baselineContext = buildSectionText(companyDoc);
@@ -888,7 +855,7 @@ export const runMultiAgentAnalysis = internalAction({
         message: "Running specialized agent analyses...",
       });
 
-      // Run all agent analyses in parallel with hybrid context approach
+      // Run all agent analyses in parallel
       const [
         financeAnalysis,
         evaluationAnalysis,
@@ -946,12 +913,12 @@ Technical: ${technicalAnalysis.summary}`;
           },
           {
             storageOptions: { saveMessages: "all" },
-          },
+          }
         );
 
         const structuredResult = await thread.generateObject({
           prompt: orchestrationResult.text,
-          model: google("gemini-2.5-flash"),
+          model: google("gemini-flash-latest"),
           schema: multiAgentSnapshotSchema,
         });
 
@@ -1022,6 +989,10 @@ Technical: ${technicalAnalysis.summary}`;
             "Unable to complete full analysis due to errors. Please retry.",
         };
 
+        if (!fallbackSnapshot) {
+          throw new Error("No fallback snapshot object");
+        }
+
         await ctx.runMutation(api.multi_agent_analysis.saveMultiAgentSnapshot, {
           companyId,
           snapshot: fallbackSnapshot,
@@ -1082,27 +1053,27 @@ export const saveMultiAgentSnapshot = mutation({
                   date: v.string(),
                   confidence: v.number(),
                   extractedFacts: v.array(v.string()),
-                }),
+                })
               ),
               checks: v.array(
                 v.object({
                   label: v.string(),
                   status: v.union(v.literal("pass"), v.literal("warn")),
                   note: v.optional(v.string()),
-                }),
+                })
               ),
-            }),
+            })
           ),
           risks: v.array(
             v.object({
               severity: v.union(
                 v.literal("low"),
                 v.literal("med"),
-                v.literal("high"),
+                v.literal("high")
               ),
               label: v.string(),
               evidence: v.string(),
-            }),
+            })
           ),
           sources: v.array(
             v.object({
@@ -1111,11 +1082,11 @@ export const saveMultiAgentSnapshot = mutation({
               date: v.string(),
               confidence: v.number(),
               extractedFacts: v.array(v.string()),
-            }),
+            })
           ),
           recommendations: v.array(v.string()),
           lastUpdated: v.string(),
-        }),
+        })
       ),
       consolidatedMetrics: v.array(
         v.object({
@@ -1131,34 +1102,34 @@ export const saveMultiAgentSnapshot = mutation({
               date: v.string(),
               confidence: v.number(),
               extractedFacts: v.array(v.string()),
-            }),
+            })
           ),
           checks: v.array(
             v.object({
               label: v.string(),
               status: v.union(v.literal("pass"), v.literal("warn")),
               note: v.optional(v.string()),
-            }),
+            })
           ),
-        }),
+        })
       ),
       consolidatedRisks: v.array(
         v.object({
           severity: v.union(
             v.literal("low"),
             v.literal("med"),
-            v.literal("high"),
+            v.literal("high")
           ),
           label: v.string(),
           evidence: v.string(),
-        }),
+        })
       ),
       investmentRecommendation: v.union(
         v.literal("strong_buy"),
         v.literal("buy"),
         v.literal("hold"),
         v.literal("sell"),
-        v.literal("strong_sell"),
+        v.literal("strong_sell")
       ),
       recommendationReasoning: v.string(),
     }),
@@ -1192,7 +1163,7 @@ export const startMultiAgentAnalysis = mutation({
       {
         companyId,
         jobId,
-      },
+      }
     );
     return { started: true, jobId };
   },

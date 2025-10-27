@@ -44,7 +44,7 @@ export const logAgentActivity = internalMutation({
       v.literal("tool_result"),
       v.literal("agent_start"),
       v.literal("agent_complete"),
-      v.literal("agent_error"),
+      v.literal("agent_error")
     ),
     toolName: v.optional(v.string()),
     toolInput: v.optional(v.any()),
@@ -55,7 +55,7 @@ export const logAgentActivity = internalMutation({
       v.literal("pending"),
       v.literal("running"),
       v.literal("completed"),
-      v.literal("error"),
+      v.literal("error")
     ),
     metadata: v.optional(v.any()),
   },
@@ -79,7 +79,7 @@ export const extractAgentActivity = internalAction({
   },
   handler: async (
     ctx,
-    { companyId, jobId, agentId, agentName, threadId, skipStartLog },
+    { companyId, jobId, agentId, agentName, threadId, skipStartLog }
   ) => {
     try {
       // Log agent start (unless already logged)
@@ -129,7 +129,7 @@ export const extractAgentActivity = internalAction({
           agentId,
           agentName,
           threadId,
-        },
+        }
       );
 
       // Log agent completion
@@ -175,18 +175,9 @@ export const extractToolCallsFromMessages = internalAction({
         paginationOpts: { cursor: null, numItems: 100 },
       });
 
-      console.log(
-        `Extracting tool calls for agent ${agentId}, found ${messagesResult.page.length} messages`,
-      );
-
       // Process each message to extract tool calls and results
       for (const message of messagesResult.page) {
         const messageContent = message.message;
-        console.log(
-          `Processing message ${message._id}, role: ${
-            messageContent?.role
-          }, content type: ${typeof messageContent?.content}`,
-        );
 
         // Check if this is an assistant message with tool calls
         if (
@@ -197,11 +188,6 @@ export const extractToolCallsFromMessages = internalAction({
         ) {
           // Look for tool calls and results in the content array
           for (const item of messageContent.content) {
-            console.log(
-              `Found content item type: ${item.type}, toolName: ${
-                "toolName" in item ? item.toolName : "N/A"
-              }`,
-            );
             if (item.type === "tool-call") {
               await ctx.runMutation(internal.agent_activity.logAgentActivity, {
                 companyId,
@@ -265,7 +251,7 @@ export const extractToolCallsFromMessages = internalAction({
                       messageId: message._id,
                       toolCallId: item.toolCallId,
                     },
-                  },
+                  }
                 );
               }
             }
@@ -289,7 +275,7 @@ export const getAgentMessages = query({
     return await ctx.db
       .query("agentMessages")
       .withIndex("by_companyId_jobId", (q) =>
-        q.eq("companyId", companyId).eq("jobId", jobId),
+        q.eq("companyId", companyId).eq("jobId", jobId)
       )
       .filter((q) => q.eq(q.field("agentId"), agentId))
       .order("asc")
@@ -309,15 +295,15 @@ export const getAgentActivity = query({
         v.literal("tool_result"),
         v.literal("agent_start"),
         v.literal("agent_complete"),
-        v.literal("agent_error"),
-      ),
+        v.literal("agent_error")
+      )
     ),
   },
   handler: async (ctx, { companyId, jobId, agentId, activityType }) => {
     let query = ctx.db
       .query("agentActivity")
       .withIndex("by_companyId_jobId", (q) =>
-        q.eq("companyId", companyId).eq("jobId", jobId),
+        q.eq("companyId", companyId).eq("jobId", jobId)
       );
 
     if (agentId) {
@@ -342,7 +328,7 @@ export const getAgentsStatus = query({
     const activities = await ctx.db
       .query("agentActivity")
       .withIndex("by_companyId_jobId", (q) =>
-        q.eq("companyId", companyId).eq("jobId", jobId),
+        q.eq("companyId", companyId).eq("jobId", jobId)
       )
       .order("asc")
       .collect();
@@ -394,7 +380,7 @@ export const getAgentsStatus = query({
     }
 
     return Array.from(agentStatuses.values()).sort(
-      (a, b) => a.lastActivity - b.lastActivity,
+      (a, b) => a.lastActivity - b.lastActivity
     );
   },
 });
@@ -410,13 +396,13 @@ export const getAgentToolCalls = query({
     const toolCalls = await ctx.db
       .query("agentActivity")
       .withIndex("by_companyId_jobId", (q) =>
-        q.eq("companyId", companyId).eq("jobId", jobId),
+        q.eq("companyId", companyId).eq("jobId", jobId)
       )
       .filter((q) =>
         q.and(
           q.eq(q.field("agentId"), agentId),
-          q.eq(q.field("activityType"), "tool_call"),
-        ),
+          q.eq(q.field("activityType"), "tool_call")
+        )
       )
       .order("asc")
       .collect();
@@ -424,13 +410,13 @@ export const getAgentToolCalls = query({
     const toolResults = await ctx.db
       .query("agentActivity")
       .withIndex("by_companyId_jobId", (q) =>
-        q.eq("companyId", companyId).eq("jobId", jobId),
+        q.eq("companyId", companyId).eq("jobId", jobId)
       )
       .filter((q) =>
         q.and(
           q.eq(q.field("agentId"), agentId),
-          q.eq(q.field("activityType"), "tool_result"),
-        ),
+          q.eq(q.field("activityType"), "tool_result")
+        )
       )
       .order("asc")
       .collect();
@@ -477,7 +463,7 @@ export const getRecentActivity = query({
     return await ctx.db
       .query("agentActivity")
       .withIndex("by_companyId_jobId", (q) =>
-        q.eq("companyId", companyId).eq("jobId", jobId),
+        q.eq("companyId", companyId).eq("jobId", jobId)
       )
       .order("desc")
       .take(limit);

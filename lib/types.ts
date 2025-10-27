@@ -1,6 +1,6 @@
 import * as z from "zod";
 import type { UseFormReturn } from "react-hook-form";
-import type { Id } from "@/convex/_generated/dataModel";
+import type { Doc, Id } from "@/convex/_generated/dataModel";
 
 // ============================================================================
 // CORE VALIDATION SCHEMAS (Source of truth)
@@ -65,27 +65,6 @@ const agentAnalysisSchema = z.object({
   lastUpdated: z.string(),
 });
 
-const multiAgentSnapshotSchema = z.object({
-  company: z.string(),
-  sector: z.string(),
-  stage: z.string(),
-  ask: z.string(),
-  overallSummary: z.string(),
-  overallConfidence: z.number(),
-  lastUpdated: z.string(),
-  agentAnalyses: z.array(agentAnalysisSchema),
-  consolidatedMetrics: z.array(metricSchema),
-  consolidatedRisks: z.array(riskSchema),
-  investmentRecommendation: z.enum([
-    "strong_buy",
-    "buy",
-    "hold",
-    "sell",
-    "strong_sell",
-  ]),
-  recommendationReasoning: z.string(),
-});
-
 // Form validation schema
 const formSchema = z.object({
   company: z.object({
@@ -138,13 +117,18 @@ const formSchema = z.object({
 // ============================================================================
 
 export type FileRef = z.infer<typeof fileRefSchema>;
-export type Founder = z.infer<typeof founderSchema>;
-export type Source = z.infer<typeof sourceSchema>;
-export type Check = z.infer<typeof checkSchema>;
-export type Metric = z.infer<typeof metricSchema>;
-export type Risk = z.infer<typeof riskSchema>;
-export type AgentAnalysisResult = z.infer<typeof agentAnalysisSchema>;
-export type MultiAgentSnapshot = z.infer<typeof multiAgentSnapshotSchema>;
+export type Founder = Doc<"founderApplications">["team"]["founders"];
+export type Source =
+  Doc<"multiAgentAnalyses">["snapshot"]["agentAnalyses"][number]["sources"];
+export type Check =
+  Doc<"multiAgentAnalyses">["snapshot"]["consolidatedMetrics"][number]["checks"];
+export type Metric =
+  Doc<"multiAgentAnalyses">["snapshot"]["agentAnalyses"][number]["metrics"];
+export type Risk =
+  Doc<"multiAgentAnalyses">["snapshot"]["agentAnalyses"][number]["risks"];
+export type AgentAnalysisResult =
+  Doc<"multiAgentAnalyses">["snapshot"]["agentAnalyses"];
+export type MultiAgentSnapshot = Doc<"multiAgentAnalyses">["snapshot"];
 
 export type FormData = z.infer<typeof formSchema>;
 export type CompanyFormData = z.infer<typeof formSchema.shape.company>;
@@ -218,7 +202,7 @@ export type Visualization = {
   type: "bar" | "line" | "area" | "pie" | "radar" | "scatter" | "composed";
   title: string;
   description: string;
-  data: Record<string, any>[];
+  data?: Record<string, any>[];
   config: {
     xAxis?: string;
     yAxis?: string;
@@ -284,14 +268,4 @@ export type ActivityItem = {
 // EXPORTED VALIDATION SCHEMAS
 // ============================================================================
 
-export {
-  formSchema,
-  founderSchema,
-  fileRefSchema,
-  sourceSchema,
-  checkSchema,
-  metricSchema,
-  riskSchema,
-  agentAnalysisSchema,
-  multiAgentSnapshotSchema,
-};
+export { formSchema, fileRefSchema };

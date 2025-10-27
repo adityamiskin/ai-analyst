@@ -8,14 +8,14 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { CompanySnapshot } from "@/lib/types";
+import type { MultiAgentSnapshot } from "@/lib/types";
 
 interface RisksProps {
-  company: CompanySnapshot;
+  company: MultiAgentSnapshot;
 }
 
 export default function Risks({ company }: RisksProps) {
-  const risks = company.risks;
+  const risks = company.consolidatedRisks;
   const color = (s: "low" | "med" | "high") =>
     s === "high" ? "destructive" : s === "med" ? "secondary" : "outline";
 

@@ -40,7 +40,7 @@ const createDomainContextTool = (companyId: string) =>
       query: z
         .string()
         .describe(
-          'Specific search query for the domain (e.g., "revenue metrics", "technology stack", "market size")',
+          'Specific search query for the domain (e.g., "revenue metrics", "technology stack", "market size")'
         ),
       limit: z
         .number()
@@ -49,7 +49,24 @@ const createDomainContextTool = (companyId: string) =>
     }),
     handler: async (ctx, args) => {
       try {
-        // Perform both RAG search and document analysis in parallel
+        // Just get RAG result
+        const ragResult = await companyRag
+          .search(ctx, {
+            namespace: companyId,
+            query: `${args.domain}: ${args.query}`,
+            limit: args.limit,
+            chunkContext: { before: 1, after: 1 },
+            filters: [
+              { name: "domain", value: args.domain },
+              { name: "contentType", value: "founderApplication" },
+            ],
+          })
+          .catch(() => ({
+            text: "RAG search failed or returned no results.",
+          }));
+
+        // Comment out document analysis
+        /*
         const [ragResult, documents] = await Promise.all([
           companyRag
             .search(ctx, {
@@ -88,7 +105,7 @@ const createDomainContextTool = (companyId: string) =>
                 fileData: new Uint8Array(await fileData.arrayBuffer()),
                 mediaType: doc.mediaType,
               };
-            }),
+            })
           );
 
           const validFiles = fileContents.filter((file) => file !== null);
@@ -140,18 +157,18 @@ Please combine both sources to provide the most accurate and complete answer. Pr
             },
           ],
         });
+        */
 
         return {
           success: true,
-          context: combinedAnalysis.text,
+          context: ragResult.text,
           domain: args.domain,
           query: args.query,
           companyId: companyId,
           sourceCount:
-            documents.length +
-            (ragResult.text !== "RAG search failed or returned no results."
+            ragResult.text !== "RAG search failed or returned no results."
               ? ragResult.text.split("\n---\n").length
-              : 0),
+              : 0,
         };
       } catch (error) {
         console.warn(`Failed to retrieve ${args.domain} context:`, error);
@@ -266,18 +283,18 @@ export const generateCompanyVisualizations = action({
           value: v.number(),
           unit: v.optional(v.string()),
           peerMedian: v.optional(v.number()),
-        }),
+        })
       ),
       risks: v.array(
         v.object({
           severity: v.union(
             v.literal("low"),
             v.literal("med"),
-            v.literal("high"),
+            v.literal("high")
           ),
           label: v.string(),
           evidence: v.string(),
-        }),
+        })
       ),
     }),
   },
@@ -296,7 +313,7 @@ ${companyData.metrics
     (m) =>
       `- ${m.label}: ${m.value}${m.unit ? " " + m.unit : ""}${
         m.peerMedian ? ` (peer median: ${m.peerMedian})` : ""
-      }`,
+      }`
   )
   .join("\n")}
 
@@ -372,7 +389,7 @@ Return the response as a JSON object with this exact structure:
                   showTooltip: z.optional(z.boolean()),
                 }),
                 insights: z.array(z.string()),
-              }),
+              })
             ),
           }),
         }),

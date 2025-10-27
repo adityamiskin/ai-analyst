@@ -14,17 +14,17 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import { CompanySnapshot } from "./snapshot";
+import type { MultiAgentSnapshot } from "@/lib/types";
 
 interface SourcesEvidenceProps {
-  company: CompanySnapshot;
+  company: MultiAgentSnapshot;
 }
 
 export function SourcesEvidence({ company }: SourcesEvidenceProps) {
-  const selectedCompany = company;
+  const metrics = company.consolidatedMetrics;
 
   // Transform company metrics into sources data structure
-  const DATA = selectedCompany.metrics.map((metric) => ({
+  const DATA = metrics.map((metric) => ({
     metric: metric.label,
     value: `${metric.value}${metric.unit || ""}`,
     sources: metric.sources.map((source) => ({

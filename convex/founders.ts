@@ -12,6 +12,7 @@ const fileRef = v.object({
   name: v.string(),
   size: v.number(),
   storageId: v.optional(v.id("_storage")),
+  mediaType: v.optional(v.string()),
 });
 
 const founder = v.object({
@@ -134,7 +135,11 @@ export const getApplicationById = internalQuery({
 export const getApplication = query({
   args: { id: v.id("founderApplications") },
   handler: async (ctx, { id }) => {
-    return await ctx.runQuery(internal.founders.getApplicationById, { id });
+    const application: Doc<"founderApplications"> = await ctx.runQuery(
+      internal.founders.getApplicationById,
+      { id }
+    );
+    return application;
   },
 });
 
@@ -144,7 +149,7 @@ export const listApplicationsByEmail = query({
     return await ctx.db
       .query("founderApplications")
       .withIndex("by_primary_email_createdAt", (q) =>
-        q.eq("primaryEmail", primaryEmail),
+        q.eq("primaryEmail", primaryEmail)
       )
       .order("desc")
       .collect();
@@ -165,7 +170,7 @@ export const deleteApplication = mutation({
 
     // Helper function to extract storage IDs from file arrays
     const extractStorageIds = (
-      files?: Array<{ storageId?: Id<"_storage"> }>,
+      files?: Array<{ storageId?: Id<"_storage"> }>
     ) => {
       if (files) {
         files.forEach((file) => {
@@ -194,7 +199,7 @@ export const deleteApplication = mutation({
       .withIndex("by_companyId_jobId", (q) => q.eq("companyId", id))
       .collect();
     await Promise.all(
-      agentActivities.map((activity) => ctx.db.delete(activity._id)),
+      agentActivities.map((activity) => ctx.db.delete(activity._id))
     );
 
     // Delete analysis jobs (references companyId)
@@ -213,7 +218,7 @@ export const deleteApplication = mutation({
 
     // Delete all associated files from storage
     const deletePromises = storageIds.map((storageId) =>
-      ctx.storage.delete(storageId),
+      ctx.storage.delete(storageId)
     );
 
     // Delete files in parallel, but don't fail if some deletions fail
@@ -317,7 +322,7 @@ const pitchDeckAnalysisSchema = z.object({
             name: z.string().describe("The name of the founder"),
             email: z.string().optional(),
             designation: z.string().describe("The designation of the founder"),
-          }),
+          })
         )
         .optional(),
       howLongWorked: z
@@ -334,7 +339,6 @@ const pitchDeckAnalysisSchema = z.object({
   product: z
     .object({
       description: z.string().describe("The description of the product"),
-      demoUrl: z.string().url("Valid demo URL is required").optional(),
       defensibility: z
         .string()
         .describe("The defensibility of the product")
@@ -390,7 +394,7 @@ export const analyzeDocuments = action({
         fileName: v.string(),
         storageId: v.id("_storage"),
         mediaType: v.string(),
-      }),
+      })
     ),
   },
   handler: async (ctx, { documents }) => {
@@ -406,7 +410,7 @@ export const analyzeDocuments = action({
           fileData: new Uint8Array(await fileData.arrayBuffer()),
           mediaType: doc.mediaType,
         };
-      }),
+      })
     );
 
     console.log("File contents length:", fileContents.length);
@@ -497,5 +501,14 @@ export const getCompanyDocuments = query({
     }
 
     return documents;
+  },
+});
+
+export const getFileUrl = query({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, { storageId }) => {
+    return await ctx.storage.getUrl(storageId);
   },
 });
