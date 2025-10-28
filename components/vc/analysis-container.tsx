@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/card";
 import { Response } from "@/components/ai-elements/response";
 import type { MultiAgentSnapshot } from "@/lib/types";
+import { exportAnalysisToPDF } from "@/lib/pdf-export";
+import { Download } from "lucide-react";
+import React from "react";
 
 export default function AnalysisContainer({
   application,
@@ -49,6 +52,8 @@ export default function AnalysisContainer({
       : "skip"
   );
 
+  const [isExporting, setIsExporting] = React.useState(false);
+
   async function onRunMultiAgent() {
     if (!companyId) return;
     try {
@@ -57,6 +62,18 @@ export default function AnalysisContainer({
       });
     } catch (error) {
       console.error("Failed to start multi-agent analysis:", error);
+    }
+  }
+
+  async function onExportPDF() {
+    if (!multiAgentSnapshot) return;
+    setIsExporting(true);
+    try {
+      await exportAnalysisToPDF(multiAgentSnapshot, application);
+    } catch (error) {
+      console.error("Failed to export PDF:", error);
+    } finally {
+      setIsExporting(false);
     }
   }
 
@@ -158,6 +175,17 @@ export default function AnalysisContainer({
           AI Analyst Report
         </h2>
         <div className="flex gap-2">
+          {multiAgentSnapshot && (
+            <Button
+              onClick={onExportPDF}
+              disabled={isExporting}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              {isExporting ? "Exporting..." : "Export PDF"}
+            </Button>
+          )}
           <Button
             onClick={onRunMultiAgent}
             disabled={!companyId || isMultiAgentRunning}
