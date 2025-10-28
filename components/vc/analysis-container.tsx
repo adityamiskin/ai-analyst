@@ -217,15 +217,15 @@ export default function AnalysisContainer({
 
       {companyId && (
         <Tabs defaultValue="founder-info" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="founder-info">Company Info</TabsTrigger>
+          <TabsList className="grid w-full md:grid-cols-3 grid-cols-2">
+            <TabsTrigger value="founder-info">Founder Information</TabsTrigger>
             <TabsTrigger
               value="multi-agent"
               className="flex items-center gap-2"
             >
               <div className="flex flex-col items-start gap-1">
                 <div className="flex items-center gap-2">
-                  Agent Analysis
+                  Multi-Agent Analysis
                   {multiAgentSnapshot && (
                     <Badge
                       className={
