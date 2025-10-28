@@ -169,7 +169,7 @@ export default function AnalysisContainer({
   };
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-6 py-8">
+    <main className="mx-auto w-full max-w-6xl md:px-6 md:py-8 p-4">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-semibold tracking-tight">
           AI Analyst Report
@@ -218,14 +218,14 @@ export default function AnalysisContainer({
       {companyId && (
         <Tabs defaultValue="founder-info" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="founder-info">Founder Information</TabsTrigger>
+            <TabsTrigger value="founder-info">Company Info</TabsTrigger>
             <TabsTrigger
               value="multi-agent"
               className="flex items-center gap-2"
             >
               <div className="flex flex-col items-start gap-1">
                 <div className="flex items-center gap-2">
-                  Multi-Agent Analysis
+                  Agent Analysis
                   {multiAgentSnapshot && (
                     <Badge
                       className={

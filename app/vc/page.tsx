@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CachedNewsDisplay } from "@/components/vc/cached-news-display";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 
 export default function VCPage() {
   // NEW: Use cached news instead of fetching fresh news
@@ -62,11 +63,14 @@ export default function VCPage() {
   }, [cachedNews, fetchNews]);
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
+    <div className="mx-auto w-full max-w-7xl md:px-6 md:py-8 p-4">
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Portfolio News
-        </h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            Portfolio News
+          </h1>
+          <SidebarTrigger />
+        </div>
         <p className="text-muted-foreground">
           Latest updates and developments from your portfolio companies
         </p>

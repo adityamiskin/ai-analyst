@@ -25,17 +25,19 @@ export default async function VCPage({ params }: VCPageProps) {
 
   return (
     <>
-      <header className="flex h-20 shrink-0 items-center gap-2 border-b px-4">
+      <header className="flex h-16 md:h-20 shrink-0 items-center gap-2 border-b px-4 md:sticky top-0 bg-background z-10">
         <SidebarTrigger className="size-8" />
         <div className="flex items-center gap-4 px-4">
           <Suspense fallback={<div>Loading...</div>}>
-            <div className="flex flex-col">
+            <div className="flex md:flex-col gap-2">
               <h1 className="text-xl font-semibold">
                 {app.company?.name ?? "Company"}
               </h1>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>{app.company?.location ?? ""}</span>
-                <span>•</span>
+              <div className="items-center gap-2 text-sm text-muted-foreground flex">
+                <span className="hidden md:block">
+                  {app.company?.location ?? ""}
+                </span>
+                <span className="hidden md:block">•</span>
                 <Badge>{app.company?.stage ?? ""}</Badge>
               </div>
             </div>

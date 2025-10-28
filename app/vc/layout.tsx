@@ -1,4 +1,8 @@
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { CompanySidebar } from "@/components/vc/company-sidebar";
 
 export default function VcLayout({ children }: { children: React.ReactNode }) {

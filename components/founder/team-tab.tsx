@@ -13,23 +13,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Label } from "@/components/ui/label";
-import type { UseFormReturn } from "react-hook-form";
-import type { FormData, TeamTabForm } from "@/lib/types";
+import type { TeamTabForm } from "@/lib/types";
 import { Trash2 } from "lucide-react";
 
 export function TeamTab({
   form,
   addFounder,
-  updateFounder,
   removeFounder,
 }: {
   form: TeamTabForm;
   addFounder: () => void;
-  updateFounder: (
-    index: number,
-    field: "name" | "email" | "designation",
-    value: string,
-  ) => void;
   removeFounder: (index: number) => void;
 }) {
   return (

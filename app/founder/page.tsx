@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/card";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
-import { FormData, formSchema, Founder } from "@/lib/types";
+import { FormData, formSchema } from "@/lib/types";
 import { Id } from "@/convex/_generated/dataModel";
 
 const defaultValues: FormData = {
@@ -147,18 +147,6 @@ export default function YCQuestionnaire() {
     ]);
   };
 
-  const updateFounder = (
-    index: number,
-    field: keyof Founder,
-    value: string
-  ) => {
-    const currentFounders = form.getValues("team.founders");
-    const updatedFounders = currentFounders.map((founder, i) =>
-      i === index ? { ...founder, [field]: value } : founder
-    );
-    form.setValue("team.founders", updatedFounders);
-  };
-
   const removeFounder = (index: number) => {
     const currentFounders = form.getValues("team.founders");
     form.setValue(
@@ -187,7 +175,6 @@ export default function YCQuestionnaire() {
         <TeamTab
           form={form}
           addFounder={addFounder}
-          updateFounder={updateFounder}
           removeFounder={removeFounder}
         />
       ),
@@ -232,8 +219,7 @@ export default function YCQuestionnaire() {
           Founder Questionnaire
         </h1>
         <p className="text-muted-foreground mt-1">
-          YC-style application to capture everything in one place. Upload your
-          deck and key docs inline as you answer.
+          Upload your deck and key docs inline as you answer.
         </p>
       </header>
 

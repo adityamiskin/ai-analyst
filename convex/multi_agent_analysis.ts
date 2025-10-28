@@ -852,7 +852,7 @@ export const runMultiAgentAnalysis = internalAction({
         jobId,
         status: "analyzing",
         progress: 40,
-        message: "Running specialized agent analyses...",
+        message: "Running agent analyses...",
       });
 
       // Run all agent analyses in parallel
