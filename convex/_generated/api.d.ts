@@ -10,7 +10,6 @@
 
 import type * as actions_analyze_docs from "../actions/analyze_docs.js";
 import type * as actions_news from "../actions/news.js";
-import type * as actions_vc_chat from "../actions/vc_chat.js";
 import type * as agent_activity from "../agent_activity.js";
 import type * as ai from "../ai.js";
 import type * as analysis from "../analysis.js";
@@ -19,6 +18,7 @@ import type * as founders from "../founders.js";
 import type * as multi_agent_analysis from "../multi_agent_analysis.js";
 import type * as news_workflow from "../news_workflow.js";
 import type * as prompt from "../prompt.js";
+import type * as vc_chat from "../vc_chat.js";
 
 import type {
   ApiFromModules,
@@ -37,7 +37,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   "actions/analyze_docs": typeof actions_analyze_docs;
   "actions/news": typeof actions_news;
-  "actions/vc_chat": typeof actions_vc_chat;
   agent_activity: typeof agent_activity;
   ai: typeof ai;
   analysis: typeof analysis;
@@ -46,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   multi_agent_analysis: typeof multi_agent_analysis;
   news_workflow: typeof news_workflow;
   prompt: typeof prompt;
+  vc_chat: typeof vc_chat;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

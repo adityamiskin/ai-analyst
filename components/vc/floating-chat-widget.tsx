@@ -1,19 +1,64 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { X, MessageCircle } from "lucide-react";
+import { X, MessageCircle, Loader2 } from "lucide-react";
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from "@/components/ui/popover";
 import { Response } from "../ai-elements/response";
+import {
+  useUIMessages,
+  useSmoothText,
+  optimisticallySendMessage,
+  type UIMessage,
+} from "@convex-dev/agent/react";
+
+function MessageItem({
+  message,
+  isUser,
+  showThinking,
+}: {
+  message: UIMessage;
+  isUser: boolean;
+  showThinking: boolean;
+}) {
+  const [visibleText] = useSmoothText(message.text, {
+    startStreaming: message.status === "streaming",
+  });
+
+  return (
+    <div className={isUser ? "text-right" : "text-left"}>
+      {showThinking ? (
+        // Show thinking indicator instead of empty message
+        <div className="inline-block rounded-lg px-3 py-2 text-sm">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Thinking...</span>
+          </div>
+        </div>
+      ) : (
+        // Show actual message content
+        <div
+          className={
+            isUser
+              ? "inline-block rounded-lg bg-blue-600 text-white px-3 py-2 text-sm max-w-xs"
+              : "inline-block rounded-lg px-3 py-2 text-sm"
+          }
+        >
+          <Response>{visibleText}</Response>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function FloatingChatWidget({
   companyId,
@@ -21,28 +66,50 @@ export function FloatingChatWidget({
   companyId?: Id<"founderApplications">;
 }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<
-    {
-      role: "user" | "assistant";
-      content: string;
-      sources?: {
-        id: number;
-        title: string;
-        url: string | null;
-        snippet: string;
-      }[];
-    }[]
-  >([]);
   const [input, setInput] = useState("");
+  const [threadId, setThreadId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  // Get action - use fallback path
-  const askCompanyAction =
-    (api.actions as any).vc_chat?.askCompany ||
-    (api as any).vc_chat?.askCompany;
+  // Use useUIMessages hook for streaming messages
+  const { results, status } = useUIMessages(
+    api.vc_chat.listThreadMessages,
+    threadId ? { threadId } : "skip",
+    { initialNumItems: 50, stream: true }
+  );
 
-  const askCompany = useAction(askCompanyAction);
+  const ensureThread = useAction(api.vc_chat.ensureThread);
+  const sendMessage = useMutation(api.vc_chat.sendMessage).withOptimisticUpdate(
+    (store, args) => {
+      optimisticallySendMessage(api.vc_chat.listThreadMessages)(store, {
+        threadId: args.threadId,
+        prompt: args.question,
+      });
+    }
+  );
+
+  // Consolidate all thinking logic in one place
+  const messagesWithThinking = useMemo(() => {
+    if (!results || results.length === 0) return [];
+
+    return results.map((message) => {
+      let showThinking = false;
+
+      // Show thinking only on assistant messages that are streaming and empty
+      if (
+        message.role === "assistant" &&
+        message.status === "streaming" &&
+        (!message.text || message.text.trim() === "")
+      ) {
+        showThinking = true;
+      }
+
+      return {
+        ...message,
+        showThinking,
+      };
+    });
+  }, [results]);
 
   const canSend = useMemo(
     () => companyId && input.trim().length > 0 && !loading,
@@ -50,47 +117,44 @@ export function FloatingChatWidget({
   );
 
   async function onSend() {
-    if (!canSend) return;
+    if (!canSend || !companyId) return;
     const q = input.trim();
-    setMessages((m) => [...m, { role: "user", content: q }]);
     setInput("");
     setLoading(true);
-    try {
-      // Filter history to only include role and content
-      const filteredHistory = messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
 
-      const res = await askCompany({
-        companyId,
+    try {
+      // Ensure thread exists first
+      let currentThreadId = threadId;
+      if (!currentThreadId) {
+        const threadResult = await ensureThread({
+          companyId,
+          threadId: undefined,
+        });
+        currentThreadId = threadResult.threadId;
+        setThreadId(currentThreadId);
+      }
+
+      // Send message with optimistic update
+      await sendMessage({
+        threadId: currentThreadId,
         question: q,
-        history: filteredHistory,
+        companyId,
       });
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: res.answer,
-          sources: res.sources,
-        },
-      ]);
-      setTimeout(() => {
-        if (scrollRef.current)
-          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-      }, 50);
     } catch (e) {
-      setMessages((m) => [
-        ...m,
-        {
-          role: "assistant",
-          content: "Sorry, I couldn't retrieve an answer right now.",
-        },
-      ]);
+      console.error("Error sending message:", e);
     } finally {
       setLoading(false);
     }
   }
+
+  // Auto-scroll when messages change
+  useEffect(() => {
+    if (results && results.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }
+  }, [results]);
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -109,9 +173,9 @@ export function FloatingChatWidget({
           title="Ask about this company"
         >
           <MessageCircle className="w-6 h-6" />
-          {messages.length > 0 && (
+          {results && results.length > 0 && (
             <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-              {messages.length}
+              {results.length}
             </div>
           )}
         </button>
@@ -136,28 +200,25 @@ export function FloatingChatWidget({
           <div className="flex flex-col gap-3">
             <ScrollArea className="h-[500px]">
               <div className="flex flex-col gap-3 pr-4">
-                {messages.length === 0 && (
+                {(!results || results.length === 0) && (
                   <div className="text-sm text-muted-foreground">
                     Ask anything about the founder application, market,
                     traction, or the latest AI analysis.
                   </div>
                 )}
-                {messages.map((m, idx) => (
-                  <div
-                    key={idx}
-                    className={m.role === "user" ? "text-right" : "text-left"}
-                  >
-                    <div
-                      className={
-                        m.role === "user"
-                          ? "inline-block rounded-lg bg-blue-600 text-white px-3 py-2 text-sm max-w-xs"
-                          : "inline-block rounded-lg px-3 py-2 text-sm"
-                      }
-                    >
-                      <Response>{m.content}</Response>
-                    </div>
-                  </div>
-                ))}
+                {messagesWithThinking.map((message) => {
+                  const isUser = message.role === "user";
+
+                  return (
+                    <MessageItem
+                      key={message.key}
+                      message={message}
+                      isUser={isUser}
+                      showThinking={message.showThinking}
+                    />
+                  );
+                })}
+                {results && results.length > 0 && <div ref={messagesEndRef} />}
               </div>
             </ScrollArea>
 

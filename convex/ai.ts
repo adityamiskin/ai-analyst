@@ -244,6 +244,19 @@ export const createMarketAgent = (companyId: string) =>
     },
   });
 
+// VC Chat Agent for streaming Q&A
+export const createVCChatAgent = (companyId: string) =>
+  new Agent(components.agent, {
+    name: "VCChatAgent",
+    instructions: `You are a precise VC analyst. Answer using ONLY the provided company context, retrieved notes, and any attached documents. If unknown, say you don't have that information. Be concise, structured, and cite key facts inline (e.g., [Source 1]).
+
+IMPORTANT: When company context or other background information is provided, use it to inform your answer but DO NOT repeat or echo the context back to the user. Only provide your analysis and answer based on that context.`,
+    languageModel: google("gemini-flash-latest"),
+    tools: {
+      getDomainContext: createDomainContextTool(companyId),
+    },
+  });
+
 export const createTechnicalAgent = (companyId: string) =>
   new Agent(components.agent, {
     name: "TechnicalAgent",
