@@ -22,7 +22,7 @@ export type DocumentsTabForm = UseFormReturn<FormData>;
 
 // Function to get file binary data and determine media type
 async function fileToBinary(
-  file: File,
+  file: File
 ): Promise<{ data: ArrayBuffer; mediaType: string }> {
   const arrayBuffer = await file.arrayBuffer();
 
@@ -50,7 +50,7 @@ async function fileToBinary(
 }
 
 export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
-  const analyzeDocuments = useAction(api.founders.analyzeDocuments);
+  const analyzeDocuments = useAction(api.actions.analyze_docs.analyzeDocuments);
   const storeFile = useAction(api.founders.storeFile);
 
   const [isAnalyzing, setIsAnalyzing] = React.useState(false);
@@ -62,15 +62,15 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
 
   const pitchDeckFiles = React.useMemo(
     () => watchedPitchDeckFiles || [],
-    [watchedPitchDeckFiles],
+    [watchedPitchDeckFiles]
   );
   const otherFiles = React.useMemo(
     () => watchedOtherFiles || [],
-    [watchedOtherFiles],
+    [watchedOtherFiles]
   );
   const allFiles = React.useMemo(
     () => [...pitchDeckFiles, ...otherFiles],
-    [pitchDeckFiles, otherFiles],
+    [pitchDeckFiles, otherFiles]
   );
   const hasAnyFiles = allFiles.length > 0;
 
@@ -81,7 +81,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
 
     // First, ensure all files are uploaded
     const filesToStore = allFiles.filter(
-      (fileRef) => fileRef.file && !fileRef.storageId,
+      (fileRef) => fileRef.file && !fileRef.storageId
     );
 
     if (filesToStore.length > 0) {
@@ -104,7 +104,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
               };
             }
             return fileRef;
-          }),
+          })
         );
 
         // Update form with stored files
@@ -178,7 +178,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
           if (analysisResult.company.whatDoYouDo) {
             form.setValue(
               "company.whatDoYouDo",
-              analysisResult.company.whatDoYouDo,
+              analysisResult.company.whatDoYouDo
             );
           }
           if (analysisResult.company.whyNow) {
@@ -198,7 +198,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
                 name: aiFounder.name || "",
                 email: aiFounder.email || "",
                 designation: aiFounder.designation || "",
-              }),
+              })
             );
 
             form.setValue("team.founders", mergedFounders);
@@ -210,7 +210,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
           if (analysisResult.team.relevantExperience) {
             form.setValue(
               "team.relevantExperience",
-              analysisResult.team.relevantExperience,
+              analysisResult.team.relevantExperience
             );
           }
         }
@@ -220,7 +220,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
           if (analysisResult.product.description) {
             form.setValue(
               "product.description",
-              analysisResult.product.description,
+              analysisResult.product.description
             );
           }
           if (analysisResult.product.demoUrl) {
@@ -229,7 +229,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
           if (analysisResult.product.defensibility) {
             form.setValue(
               "product.defensibility",
-              analysisResult.product.defensibility,
+              analysisResult.product.defensibility
             );
           }
         }
@@ -242,13 +242,13 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
           if (analysisResult.market.competitors) {
             form.setValue(
               "market.competitors",
-              analysisResult.market.competitors,
+              analysisResult.market.competitors
             );
           }
           if (analysisResult.market.differentiation) {
             form.setValue(
               "market.differentiation",
-              analysisResult.market.differentiation,
+              analysisResult.market.differentiation
             );
           }
           if (analysisResult.market.gtm) {
@@ -270,13 +270,13 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
           if (analysisResult.traction.isLaunched) {
             form.setValue(
               "traction.isLaunched",
-              analysisResult.traction.isLaunched,
+              analysisResult.traction.isLaunched
             );
           }
           if (analysisResult.traction.launchDate) {
             form.setValue(
               "traction.launchDate",
-              analysisResult.traction.launchDate,
+              analysisResult.traction.launchDate
             );
           }
           if (analysisResult.traction.mrr) {
@@ -288,7 +288,7 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
           if (analysisResult.traction.activeUsersCount) {
             form.setValue(
               "traction.activeUsersCount",
-              analysisResult.traction.activeUsersCount,
+              analysisResult.traction.activeUsersCount
             );
           }
           if (analysisResult.traction.pilots) {
@@ -300,13 +300,13 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
         }
 
         toast.success(
-          "Documents analyzed! Many form fields have been pre-filled with extracted information.",
+          "Documents analyzed! Many form fields have been pre-filled with extracted information."
         );
       }
     } catch (error) {
       console.error("Error analyzing documents:", error);
       toast.error(
-        "Could not analyze documents, but you can still fill the form manually.",
+        "Could not analyze documents, but you can still fill the form manually."
       );
     } finally {
       setIsAnalyzing(false);
@@ -316,10 +316,10 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
   return (
     <>
       <p className="text-sm text-muted-foreground">
-        Upload your documents. Your pitch deck is required and will help
-        auto-fill many fields across your application including company details,
-        team information, product description, market analysis, and traction
-        metrics. Additional documents provide more context.
+        Upload your documents. Your pitch deck (optional) will help auto-fill
+        many fields across your application including company details, team
+        information, product description, market analysis, and traction metrics.
+        Additional documents provide more context.
       </p>
       <div className="grid gap-6">
         <FormField
@@ -327,12 +327,12 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
           name="documents.pitchDeck"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Pitch deck * (PDF/PPT)</FormLabel>
+              <FormLabel>Pitch deck (optional) - PDF/PPT/DOC/DOCX</FormLabel>
               <FormControl>
                 <FilePicker
                   id="pitchDeck"
                   label=""
-                  accept=".pdf,.ppt,.pptx"
+                  accept=".pdf,.ppt,.pptx,.doc,.docx"
                   onChange={(files) => {
                     field.onChange(files);
                   }}
@@ -374,8 +374,8 @@ export function DocumentsTab({ form }: { form: DocumentsTabForm }) {
             {isStoring
               ? "Uploading..."
               : isAnalyzing
-                ? "Analyzing..."
-                : "Upload & Analyze Documents"}
+              ? "Analyzing..."
+              : "Upload & Analyze Documents"}
           </Button>
         )}
       </div>

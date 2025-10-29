@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as actions_analyze_docs from "../actions/analyze_docs.js";
 import type * as actions_news from "../actions/news.js";
 import type * as actions_vc_chat from "../actions/vc_chat.js";
 import type * as agent_activity from "../agent_activity.js";
@@ -34,6 +35,7 @@ import type {
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  "actions/analyze_docs": typeof actions_analyze_docs;
   "actions/news": typeof actions_news;
   "actions/vc_chat": typeof actions_vc_chat;
   agent_activity: typeof agent_activity;

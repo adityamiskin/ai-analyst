@@ -107,7 +107,7 @@ const formSchema = z.object({
     kpis: z.string(),
   }),
   documents: z.object({
-    pitchDeck: z.array(fileRefSchema).min(1, "Pitch deck is required"),
+    pitchDeck: z.array(fileRefSchema),
     other: z.array(fileRefSchema),
   }),
 });
