@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { FormData, formSchema } from "@/lib/types";
 import { Id } from "@/convex/_generated/dataModel";
+import { ProtectedRoute } from "@/components/protected-route";
+import { UserMenu } from "@/components/user-menu";
 
 const defaultValues: FormData = {
   company: {
@@ -213,11 +215,15 @@ export default function YCQuestionnaire() {
   };
 
   return (
-    <main className="container mx-auto max-w-5xl px-4 py-8">
+    <ProtectedRoute>
+      <main className="container mx-auto max-w-5xl px-4 py-8">
       <header className="mb-6">
-        <h1 className="text-3xl font-semibold text-pretty">
-          Founder Questionnaire
-        </h1>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-3xl font-semibold text-pretty">
+            Founder Questionnaire
+          </h1>
+          <UserMenu />
+        </div>
         <p className="text-muted-foreground mt-1">
           Upload your deck and key docs inline as you answer.
         </p>
@@ -284,5 +290,6 @@ export default function YCQuestionnaire() {
         </CardContent>
       </Card>
     </main>
+    </ProtectedRoute>
   );
 }

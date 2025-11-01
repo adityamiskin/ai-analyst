@@ -9,10 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Link from "next/link";
+import { UserMenu } from "@/components/user-menu";
 
 export default function Page() {
   return (
     <main className="container mx-auto max-w-5xl px-4 py-16 flex flex-col items-center justify-center min-h-screen">
+      <div className="absolute top-4 right-4">
+        <UserMenu />
+      </div>
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">

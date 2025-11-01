@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { ConvexClientProvider } from "@/components/convex-provider";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
@@ -20,7 +21,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`font-sans ${GeistSans.variable} ${GeistMono.variable}`}>
-        <ConvexClientProvider>{children}</ConvexClientProvider>
+        <ConvexClientProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ConvexClientProvider>
         <Toaster richColors />
         <Analytics />
       </body>
