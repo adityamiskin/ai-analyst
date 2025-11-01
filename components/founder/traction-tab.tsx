@@ -67,9 +67,9 @@ export function TractionTab({ form }: { form: TractionTabForm }) {
           name="traction.mrr"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>MRR (USD)</FormLabel>
+              <FormLabel>MRR</FormLabel>
               <FormControl>
-                <Input placeholder="e.g. 12000" {...field} />
+                <Input placeholder="e.g. 12000, $12K, ₹10L" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
