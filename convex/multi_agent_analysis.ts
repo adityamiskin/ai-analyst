@@ -1162,3 +1162,42 @@ export const getJobStatus = query({
     return doc ?? null;
   },
 });
+
+export const getAllLatestRecommendations = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all analyses
+    const allAnalyses = await ctx.db.query("multiAgentAnalyses").collect();
+
+    // Group by companyId and keep only the latest for each
+    const latestByCompany = new Map<
+      Id<"founderApplications">,
+      { recommendation: string; confidence: number; createdAt: number }
+    >();
+
+    for (const analysis of allAnalyses) {
+      const existing = latestByCompany.get(analysis.companyId);
+      if (!existing || analysis.createdAt > existing.createdAt) {
+        latestByCompany.set(analysis.companyId, {
+          recommendation: analysis.snapshot.investmentRecommendation,
+          confidence: analysis.snapshot.overallConfidence,
+          createdAt: analysis.createdAt,
+        });
+      }
+    }
+
+    // Convert to a simple object of companyId -> { recommendation, confidence }
+    const result: Record<
+      string,
+      { recommendation: string; confidence: number }
+    > = {};
+    for (const [companyId, data] of latestByCompany.entries()) {
+      result[companyId] = {
+        recommendation: data.recommendation,
+        confidence: data.confidence,
+      };
+    }
+
+    return result;
+  },
+});

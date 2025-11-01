@@ -34,7 +34,19 @@ const newsItemSchema = z.object({
     .describe(
       "Date of the news item (YYYY-MM-DD format if available, otherwise approximate)",
     ),
-  url: z.string().optional().describe("URL to the full article if available"),
+  url: z
+    .string()
+    .optional()
+    .describe("URL to the full article if available")
+    .transform((val) => {
+      if (!val || val.trim() === "") return val;
+      // If already a URL, return as is
+      if (val.startsWith("http://") || val.startsWith("https://")) {
+        return val;
+      }
+      // Convert to URL by prepending https://
+      return `https://${val}`;
+    }),
 });
 
 const structuredNewsSchema = z.object({

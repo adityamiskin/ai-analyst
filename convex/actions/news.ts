@@ -33,13 +33,21 @@ const newsItemSchema = z.object({
   date: z
     .string()
     .describe(
-      "Date of the news item (YYYY-MM-DD format if available, otherwise approximate)",
+      "Date of the news item (YYYY-MM-DD format if available, otherwise approximate)"
     ),
   url: z
     .string()
-    .url({ message: "Invalid URL" })
+    .optional()
     .describe("URL to the full article if available")
-    .optional(),
+    .transform((val) => {
+      if (!val || val.trim() === "") return val;
+      // If already a URL, return as is
+      if (val.startsWith("http://") || val.startsWith("https://")) {
+        return val;
+      }
+      // Convert to URL by prepending https://
+      return `https://${val}`;
+    }),
 });
 
 const structuredNewsSchema = z.object({
@@ -148,12 +156,12 @@ Extract the key information from each news item and structure it properly. If no
 export const fetchAndCacheNewsDaily = internalAction({
   args: {},
   handler: async (
-    ctx,
+    ctx
   ): Promise<{ success: boolean; newsCount?: number; error?: string }> => {
     try {
       console.log(
         "Starting daily news cache job at:",
-        new Date().toISOString(),
+        new Date().toISOString()
       );
 
       // Get the companies from the database and fetch their news
@@ -255,11 +263,11 @@ Extract the key information from each news item and structure it properly. If no
         internal.news_workflow.cacheNews,
         {
           newsItems,
-        },
+        }
       );
 
       console.log(
-        `Successfully cached ${newsItems.length} news items with ID: ${cachedNewsId}`,
+        `Successfully cached ${newsItems.length} news items with ID: ${cachedNewsId}`
       );
 
       return { success: true, newsCount: newsItems.length };

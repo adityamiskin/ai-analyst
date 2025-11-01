@@ -45,6 +45,9 @@ export function CompanySidebar() {
   const applications = useQuery(api.founders.listAllApplications);
   const deleteApplication = useMutation(api.founders.deleteApplication);
   const togglePinCompany = useMutation(api.founders.togglePinCompany);
+  const recommendations = useQuery(
+    api.multi_agent_analysis.getAllLatestRecommendations
+  );
 
   const { pinnedCompanies: pinnedApps, unpinnedCompanies: unpinnedApps } =
     useFilteredApplications(applications, searchQuery);
@@ -63,7 +66,7 @@ export function CompanySidebar() {
 
   const handleDeleteCompany = async (
     companyId: Id<"founderApplications">,
-    companyName: string,
+    companyName: string
   ) => {
     try {
       await deleteApplication({ id: companyId });
@@ -75,99 +78,159 @@ export function CompanySidebar() {
     }
   };
 
-  const renderCompanyItem = (app: SidebarApplication) => (
-    <SidebarMenuItem key={app._id}>
-      <SidebarMenuButton
-        asChild
-        variant="outline"
-        isActive={app._id === currentCompanyId}
-        className="w-full p-4 h-auto"
-      >
-        <Link
-          href={`/vc/${app._id}`}
-          onMouseEnter={() => {
-            router.prefetch(`/vc/${app._id}`);
-          }}
+  const getRecommendationBadge = (
+    recommendation?: string
+  ): { label: string; className: string } | null => {
+    if (!recommendation) return null;
+
+    switch (recommendation) {
+      case "strong_buy":
+        return {
+          label: "Strong Buy",
+          className: "bg-green-100 text-green-800 border-green-200",
+        };
+      case "buy":
+        return {
+          label: "Buy",
+          className: "bg-green-50 text-green-700 border-green-100",
+        };
+      case "hold":
+        return {
+          label: "Hold",
+          className: "bg-yellow-50 text-yellow-700 border-yellow-100",
+        };
+      case "sell":
+        return {
+          label: "Sell",
+          className: "bg-red-50 text-red-700 border-red-100",
+        };
+      case "strong_sell":
+        return {
+          label: "Strong Sell",
+          className: "bg-red-100 text-red-800 border-red-200",
+        };
+      default:
+        return null;
+    }
+  };
+
+  const renderCompanyItem = (app: SidebarApplication) => {
+    const recommendationData = recommendations?.[app._id];
+    const recommendationBadge = getRecommendationBadge(
+      recommendationData?.recommendation
+    );
+    const confidencePercentage = recommendationData?.confidence
+      ? Math.round(recommendationData.confidence * 100)
+      : null;
+
+    return (
+      <SidebarMenuItem key={app._id}>
+        <SidebarMenuButton
+          asChild
+          variant="outline"
+          isActive={app._id === currentCompanyId}
+          className="w-full p-4 h-auto"
         >
-          <div className="flex flex-col items-start gap-3 w-full">
-            <div className="flex items-center justify-between w-full">
-              <div>
-                <h3 className="font-semibold text-sm">{app.company.name}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {app.company.location}
-                </p>
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {app.company.oneLiner ?? ""}
-            </p>
-
-            <div className="flex items-center justify-between w-full">
-              <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  <span>
-                    {app.updatedAt
-                      ? new Date(app.updatedAt).toLocaleDateString()
-                      : new Date(app.createdAt).toLocaleDateString()}
-                  </span>
+          <Link
+            href={`/vc/${app._id}`}
+            onMouseEnter={() => {
+              router.prefetch(`/vc/${app._id}`);
+            }}
+          >
+            <div className="flex flex-col items-start gap-3 w-full">
+              <div className="flex items-center justify-between w-full">
+                <div>
+                  <h3 className="font-semibold text-sm">{app.company.name}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {app.company.location}
+                  </p>
                 </div>
               </div>
-              <Badge>{app.company.stage}</Badge>
-            </div>
-          </div>
-        </Link>
-      </SidebarMenuButton>
 
-      {/* Action buttons - Pin and Delete */}
-      <div className="absolute top-2 right-2 flex items-center gap-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 hover:bg-primary/10 hover:text-primary"
-          onClick={(e) => {
-            e.preventDefault();
-            togglePin(app._id);
-          }}
-        >
-          {app.pinned ? (
-            <PinOff className="h-3 w-3" />
-          ) : (
-            <Pin className="h-3 w-3" />
-          )}
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="h-3 w-3" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete Company</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete &quot;{app.company.name}
-                &quot;? This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={() => handleDeleteCompany(app._id, app.company.name)}
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                {app.company.oneLiner ?? ""}
+              </p>
+
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    <span>
+                      {app.updatedAt
+                        ? new Date(app.updatedAt).toLocaleDateString()
+                        : new Date(app.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {recommendationBadge && (
+                    <Badge
+                      className={`${recommendationBadge.className} border text-xs font-medium shrink-0`}
+                    >
+                      {recommendationBadge.label}
+                      {confidencePercentage !== null && (
+                        <span className="ml-1 opacity-75">
+                          {confidencePercentage}%
+                        </span>
+                      )}
+                    </Badge>
+                  )}
+                  <Badge>{app.company.stage}</Badge>
+                </div>
+              </div>
+            </div>
+          </Link>
+        </SidebarMenuButton>
+
+        {/* Action buttons - Pin and Delete */}
+        <div className="absolute top-2 right-2 flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 hover:bg-primary/10 hover:text-primary"
+            onClick={(e) => {
+              e.preventDefault();
+              togglePin(app._id);
+            }}
+          >
+            {app.pinned ? (
+              <PinOff className="h-3 w-3" />
+            ) : (
+              <Pin className="h-3 w-3" />
+            )}
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0 hover:bg-destructive/10 hover:text-destructive"
               >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    </SidebarMenuItem>
-  );
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Company</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete &quot;{app.company.name}
+                  &quot;? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => handleDeleteCompany(app._id, app.company.name)}
+                >
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </SidebarMenuItem>
+    );
+  };
 
   return (
     <Sidebar className="w-96">

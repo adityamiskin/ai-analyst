@@ -10,7 +10,18 @@ import { z } from "zod";
 const pitchDeckAnalysisSchema = z.object({
   company: z.object({
     name: z.string().describe("The name of the company"),
-    website: z.string().url("Valid website URL is required").optional(),
+    website: z
+      .string()
+      .optional()
+      .transform((val) => {
+        if (!val || val.trim() === "") return val;
+        // If already a URL, return as is
+        if (val.startsWith("http://") || val.startsWith("https://")) {
+          return val;
+        }
+        // Convert to URL by prepending https://
+        return `https://${val}`;
+      }),
     location: z.string().optional(),
     oneLiner: z.string().describe("The one-liner of the company"),
     stage: z
