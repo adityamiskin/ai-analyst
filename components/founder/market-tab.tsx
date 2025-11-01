@@ -94,9 +94,9 @@ export function MarketTab({ form }: { form: MarketTabForm }) {
             name="market.tam"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>TAM (USD)</FormLabel>
+                <FormLabel>TAM</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. $20B" {...field} />
+                  <Input placeholder="e.g. 20B, $20B, ₹1500Cr" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -107,9 +107,9 @@ export function MarketTab({ form }: { form: MarketTabForm }) {
             name="market.sam"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SAM (USD)</FormLabel>
+                <FormLabel>SAM</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. $4B" {...field} />
+                  <Input placeholder="e.g. 4B, $4B, ₹300Cr" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -120,9 +120,9 @@ export function MarketTab({ form }: { form: MarketTabForm }) {
             name="market.som"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>SOM (USD)</FormLabel>
+                <FormLabel>SOM</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g. $400M" {...field} />
+                  <Input placeholder="e.g. 400M, $400M, ₹30Cr" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
